@@ -1,0 +1,1 @@
+print("Ich bin die Bachelorarbeit")
