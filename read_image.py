@@ -10,6 +10,9 @@ print(jpgfile.getexif())
 
 (width, height) = (jpgfile.width, jpgfile.height)
 
+box = (100, 100, 400, 400)
+jpgfile.crop(box).save("cropped.jpg", "JPEG")
+
 for i in range(4):
 
     print("--------------------------- Iteration:", i, "---------------------------")
