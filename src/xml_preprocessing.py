@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-import xml.etree.ElementTree as et
+import xml.etree.ElementTree as elemTree
 
 DATA_DIR = "data/"
 SPLIT_DIR = DATA_DIR + "split/"
@@ -29,7 +29,7 @@ def split_xml_files() -> None:
 def parse_xml_files() -> None:
     for filename in os.listdir(SPLIT_DIR):
         if filename.lower().endswith(".xml"):
-            tree = et.parse(SPLIT_DIR + filename)
+            tree = elemTree.parse(SPLIT_DIR + filename)
             root = tree.getroot()
             for child in root.iter("V_PARTNER"):
                 print(filename, "|", child.tag, child.text)
