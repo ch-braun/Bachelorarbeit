@@ -7,6 +7,7 @@ SPLIT_DIR = DATA_DIR + "split/"
 
 
 def split_xml_files() -> None:
+    print("Splitting XML-files...")
     Path(SPLIT_DIR).mkdir(parents=True, exist_ok=True)
 
     for filename in os.listdir(DATA_DIR):
@@ -27,6 +28,7 @@ def split_xml_files() -> None:
 
 
 def parse_xml_files() -> None:
+    print("Parsing XML-files...")
     for filename in os.listdir(SPLIT_DIR):
         if filename.lower().endswith(".xml"):
             tree = elemTree.parse(SPLIT_DIR + filename)

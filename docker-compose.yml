@@ -5,3 +5,4 @@ services:
     volumes:
       - ./src:/home/code
       - ./data:/home/data
+    command: bash -c "cd /home && python ./code/${PYTHON_ENTRYPOINT}"
