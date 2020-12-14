@@ -1,0 +1,7 @@
+version: "3.9"
+services:
+  tensor:
+    image: tensorflow/tensorflow
+    volumes:
+      - ./src:/home/code
+      - ./data:/home/data
