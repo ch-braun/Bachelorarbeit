@@ -19,10 +19,11 @@ def split_xml_files() -> None:
 
             dataset_number = 1
             for line in old_file:
-                new_file = open(SPLIT_DIR + filename + "_" + str(dataset_number) + ".xml", "w", encoding="iso-8859-1")
-                new_file.write(line)
-                new_file.close()
-                dataset_number += 1
+                if line.startswith('<?xml version="1.0" encoding="iso-8859-1"?>'):
+                    new_file = open(SPLIT_DIR + filename + "_" + str(dataset_number) + ".xml", "w", encoding="iso-8859-1")
+                    new_file.write(line)
+                    new_file.close()
+                    dataset_number += 1
 
             old_file.close()
 
