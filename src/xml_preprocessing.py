@@ -23,6 +23,7 @@ def split_xml_files() -> None:
                     new_file = open(SPLIT_DIR + filename + "_" + str(dataset_number) + ".xml", "w", encoding="iso-8859-1")
                     new_file.write(line)
                     new_file.close()
+                    print("Wrote file: ", filename + "_" + str(dataset_number) + ".xml")
                     dataset_number += 1
 
             old_file.close()
@@ -43,4 +44,4 @@ def parse_xml_files() -> None:
 
 
 split_xml_files()
-parse_xml_files()
+# parse_xml_files()
