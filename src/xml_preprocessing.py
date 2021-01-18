@@ -44,7 +44,7 @@ def parse_xml_file(filename) -> elemTree.Element:
 def create_table_stats() -> None:
     print("Creating table statistics...")
     tables = dict()
-    table_stat_file = "table_stat_" + datetime.now().strftime("%Y-%m-%d (%H:%M:%S)") + ".csv"
+    table_stat_file = "table_stat_" + datetime.now().strftime("%Y_%m_%d_(%H-%M-%S)") + ".csv"
     for filename in os.listdir(SPLIT_DIR):
         if filename.lower().endswith(".xml"):
             root = parse_xml_file(SPLIT_DIR + filename)
@@ -81,7 +81,7 @@ def create_table_stats() -> None:
 def create_score_stats() -> None:
     print("Creating score statistics...")
     score_stats = list()
-    score_stat_file = "score_stat_" + datetime.now().strftime("%Y-%m-%d (%H:%M:%S)") + ".csv"
+    score_stat_file = "score_stat_" + datetime.now().strftime("%Y_%m_%d_(%H-%M-%S)") + ".csv"
     file_scores = {"file_name": "", "1": 0, "2": 0, "3": 0, "4": 0,
                    "5": 0, "6": 0, "7": 0, "8": 0, "9": 0, "10": 0, "11": 0, "12": 0, "99": 0}
     counter = 0
@@ -125,6 +125,6 @@ def create_score_stats() -> None:
     score_stat_file.close()
 
 
-# split_xml_files()
-# create_table_stats()
+split_xml_files(overwrite=True)
+create_table_stats()
 create_score_stats()
