@@ -16,12 +16,15 @@ def create_stats() -> None:
 
     global_score_stats = list()
     global_table_stats = dict()
+    global_column_stats = dict()
 
     file_score_stats = {"file_name": "", "1": 0, "2": 0, "3": 0, "4": 0, "5": 0,
                         "6": 0, "7": 0, "8": 0, "9": 0, "10": 0, "11": 0, "12": 0, "99": 0}
 
-    score_stat_file = "score_stat_" + datetime.now().strftime("%Y_%m_%d_(%H-%M-%S)") + ".csv"
-    table_stat_file = "table_stat_" + datetime.now().strftime("%Y_%m_%d_(%H-%M-%S)") + ".csv"
+    ts = datetime.now().strftime("%Y_%m_%d_(%H-%M-%S)")
+    score_stat_file = "score_stat_" + ts + ".csv"
+    table_stat_file = "table_stat_" + ts + ".csv"
+    column_stat_file = "_column_stat_" + ts + ".csv"
 
     print("Creating statistics...")
     counter = 0
@@ -50,27 +53,53 @@ def create_stats() -> None:
                     if row.tag == 'zdkk_rb_scores':
                         file_score_stats[str(row.find('score1').text)] += 1
 
+                    # Create column statistics
+                    if row.tag not in global_column_stats.keys():
+                        global_column_stats[row.tag] = dict()
+
+                    if 'total_rows' not in global_column_stats[row.tag].keys():
+                        global_column_stats[row.tag]['total_rows'] = 1
+                    else:
+                        global_column_stats[row.tag]['total_rows'] += 1
+
+                    for column in row:
+                        if column.text is None or column.text == '':
+                            continue
+                        if row.tag not in global_column_stats[row.tag].keys():
+                            global_column_stats[row.tag][column.tag] = 1
+                        else:
+                            global_column_stats[row.tag][column.tag] += 1
+
                 global_score_stats.append(file_score_stats)
                 print(counter, filename, "processed.")
             else:
                 print(counter, filename, "has no heap.")
 
+    # Save table statistics
+    table_stat_file = open(STAT_DIR + table_stat_file, "w", encoding="utf-8")
     header = ';'.join(map(str, global_table_stats.keys()))
     content = ';'.join(map(str, global_table_stats.values()))
-    table_stat_file = open(STAT_DIR + table_stat_file, "w", encoding="utf-8")
     table_stat_file.write(header + "\n")
     table_stat_file.write(content + "\n")
     table_stat_file.close()
 
+    # Save score statistics
     score_stat_file = open(STAT_DIR + score_stat_file, "w", encoding="utf-8")
     header = ";".join(file_score_stats.keys())
     score_stat_file.write(header + "\n")
-
     for line in global_score_stats:
         line = ";".join(str(x) for x in line.values())
         score_stat_file.write(line + "\n")
-
     score_stat_file.close()
+
+    # Save column statistics
+    for key in global_column_stats.keys():
+        file = open(DETAILED_STAT_DIR + column_stat_file, "w", encoding="utf-8")
+        header = ";".join(global_column_stats[key].keys())
+        content = ";".join(global_column_stats[key].values())
+        file.write(header + "\n")
+        file.write(content + "\n")
+        file.close()
 
 
 def do_step(args: argparse.Namespace) -> None:
