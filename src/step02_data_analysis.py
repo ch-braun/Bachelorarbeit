@@ -63,12 +63,11 @@ def create_stats() -> None:
                         global_column_stats[row.tag]['total_rows'] += 1
 
                     for column in row:
-                        if column.text is None or column.text == '':
-                            continue
-                        if row.tag not in global_column_stats[row.tag].keys():
-                            global_column_stats[row.tag][column.tag] = 1
-                        else:
-                            global_column_stats[row.tag][column.tag] += 1
+                        if column.text is not None and column.text != '':
+                            if column.tag not in global_column_stats[row.tag].keys():
+                                global_column_stats[row.tag][column.tag] = 1
+                            else:
+                                global_column_stats[row.tag][column.tag] += 1
 
                 global_score_stats.append(file_score_stats)
                 print(counter, filename, "processed.")
@@ -85,18 +84,18 @@ def create_stats() -> None:
 
     # Save score statistics
     score_stat_file = open(STAT_DIR + score_stat_file, "w", encoding="utf-8")
-    header = ";".join(file_score_stats.keys())
+    header = ";".join(map(str, file_score_stats.keys()))
     score_stat_file.write(header + "\n")
     for line in global_score_stats:
-        line = ";".join(str(x) for x in line.values())
+        line = ";".join(map(str, line.values()))
         score_stat_file.write(line + "\n")
     score_stat_file.close()
 
     # Save column statistics
     for key in global_column_stats.keys():
-        file = open(DETAILED_STAT_DIR + column_stat_file, "w", encoding="utf-8")
-        header = ";".join(global_column_stats[key].keys())
-        content = ";".join(global_column_stats[key].values())
+        file = open(DETAILED_STAT_DIR + key + column_stat_file, "w", encoding="utf-8")
+        header = ";".join(map(str, global_column_stats[key].keys()))
+        content = ";".join(map(str, global_column_stats[key].values()))
         file.write(header + "\n")
         file.write(content + "\n")
         file.close()
