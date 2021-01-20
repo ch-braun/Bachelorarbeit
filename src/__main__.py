@@ -9,10 +9,11 @@ import step06_knowledge_representation
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--skip_steps', help='Skip given steps (1 - 6)', nargs='+', metavar='N', type=int)
+    parser.add_argument('--clean_scores', help='Remove ambiguously scored customers', action='store_true')
     parser.add_argument('--overwrite', help='Overwrite existing files', action='store_true')
     parser.add_argument('--skip_split', help='Skip splitting of files', action='store_true')
     parser.add_argument('--skip_stats', help='Skip creation of statistics', action='store_true')
+    parser.add_argument('--skip_steps', help='Skip given steps (1 - 6)', nargs='+', metavar='N', type=int)
 
     return parser.parse_args()
 
@@ -23,10 +24,10 @@ def run_data_mining() -> None:
         args.skip_steps = list()
 
     if 1 not in args.skip_steps:
-        step01_data_collection.do_step()
+        step01_data_collection.do_step(args)
 
     if 2 not in args.skip_steps:
-        step02_data_analysis.do_step()
+        step02_data_analysis.do_step(args)
 
     if 3 not in args.skip_steps:
         step03_data_preprocessing.do_step()
