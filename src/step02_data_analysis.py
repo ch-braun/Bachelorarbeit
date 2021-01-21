@@ -75,10 +75,8 @@ def create_stats() -> None:
 
     # Save table statistics
     table_stat_file = open(STAT_DIR + table_stat_file, "w", encoding="utf-8")
-    header = ';'.join(map(str, global_table_stats.keys()))
-    content = ';'.join(map(str, global_table_stats.values()))
-    table_stat_file.write(header + "\n")
-    table_stat_file.write(content + "\n")
+    for key in global_table_stats.keys():
+        table_stat_file.write(str(key) + ";" + str(global_table_stats[key]) + "\n")
     table_stat_file.close()
 
     # Save score statistics
@@ -93,10 +91,8 @@ def create_stats() -> None:
     # Save column statistics
     for key in global_column_stats.keys():
         file = open(DETAILED_GLOBAL_STAT_DIR + key + column_stat_file, "w", encoding="utf-8")
-        header = ";".join(map(str, global_column_stats[key].keys()))
-        content = ";".join(map(str, global_column_stats[key].values()))
-        file.write(header + "\n")
-        file.write(content + "\n")
+        for col_key in global_column_stats[key].keys():
+            file.write(str(col_key) + ";" + str(global_column_stats[key][col_key]) + "\n")
         file.close()
 
 
