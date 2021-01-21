@@ -1,18 +1,17 @@
 import argparse
-from datetime import datetime
 import os
-import re
+from datetime import datetime
 from pathlib import Path
 
 from step01_data_collection import SPLIT_DIR, STAT_DIR
 from util import xml_tools
 
-DETAILED_STAT_DIR = STAT_DIR + "detailed/"
+DETAILED_GLOBAL_STAT_DIR = STAT_DIR + "detailed_global/"
 
 
 def create_stats() -> None:
     Path(STAT_DIR).mkdir(parents=True, exist_ok=True)
-    Path(DETAILED_STAT_DIR).mkdir(parents=True, exist_ok=True)
+    Path(DETAILED_GLOBAL_STAT_DIR).mkdir(parents=True, exist_ok=True)
 
     global_score_stats = list()
     global_table_stats = dict()
@@ -93,7 +92,7 @@ def create_stats() -> None:
 
     # Save column statistics
     for key in global_column_stats.keys():
-        file = open(DETAILED_STAT_DIR + key + column_stat_file, "w", encoding="utf-8")
+        file = open(DETAILED_GLOBAL_STAT_DIR + key + column_stat_file, "w", encoding="utf-8")
         header = ";".join(map(str, global_column_stats[key].keys()))
         content = ";".join(map(str, global_column_stats[key].values()))
         file.write(header + "\n")
