@@ -28,7 +28,12 @@ def transform_zdkk_rb_scores(table_rows: list):
 
 
 def transform_dfkkko(table_rows: list):
-    pass
+    target = {'dfkkko->blart->1': 0}
+
+    if len(table_rows) == 0:
+        return target
+
+    return target
 
 
 def transform_dfkkop(table_rows: list):
