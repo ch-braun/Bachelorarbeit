@@ -1,5 +1,26 @@
-def transform_but000(table_rows: list):
-    pass
+from datetime import datetime
+
+
+def transform_but000(table_rows: list) -> dict:
+
+    target = {'but000->type->1': 0, 'but000->type->2': 0, 'but000->type->3': 0,
+
+              'but000->bpkind->p01': 0, 'but000->bpkind->p02': 0, 'but000->pbkind->pj': 0,
+              'but000->bpkind->pn': 0, 'but000->bpkind->s4im': 0,
+
+              'but000->bu_group->': 0
+              }
+
+    if len(table_rows) == 0:
+        return target
+
+    row = max(table_rows, key=lambda r: datetime.strptime(r.find('crdat').text, '%Y-%m-%d'))
+    target['but000->type->' + str(row.find('type').text).lower()] = 1
+    target['but000->type->' + str(row.find('bpkind').text).lower()] = 1
+
+    print(row.find('bu_group').text)
+
+    return target
 
 
 def transform_zdkk_rb_scores(table_rows: list):
@@ -80,31 +101,6 @@ def transform_fkk_sec(table_rows: list):
 
 def transform_fkk_sec_c(table_rows: list):
     pass
-
-#
-# map_table_transformer = {
-#     'but000': transform_but000,
-#     'zdkk_rb_scores': transform_zdkk_rb_scores,
-#     'dfkkko': transform_dfkkko,
-#     'dfkkop': transform_dfkkop,
-#     'but0bk': transform_but0bk,
-#     'fkkmaze': transform_fkkmaze,
-#     'fkkmako': transform_fkkmako,
-#     'dfkklocks': transform_dfkklocks,
-#     'zdkk_mw_vtref_st': transform_zdkk_mw_vtref_st,
-#     'dfkkzk': TransformerDfkkzk,
-#     'dpayh': TransformerDpayh,
-#     'fkk_instpln_head': TransformerFkk_instpln_head,
-#     'dfkkrk': TransformerDfkkrk,
-#     'zdkk_bapi_obcfc': TransformerZdkk_bapi_obcfc,
-#     'zdkk_bapi_obbel': TransformerZdkk_bapi_obbel,
-#     'zdkk_zv_azahl': TransformerZdkk_zv_azahl,
-#     'zdkk_crpo': TransformerZdkk_crpo,
-#     'zdkk_dk_san_bas': TransformerZdkk_dk_san_bas,
-#     'zdkk_abg_n_cfc': TransformerZdkk_abg_n_cfc,
-#     'fkk_sec': TransformerFkk_sec,
-#     'fkk_sec_c': TransformerFkk_sec_c
-# }
 
 
 def get_transform_func_for_table_rows(table_name: str):
