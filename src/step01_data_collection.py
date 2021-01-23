@@ -1,10 +1,9 @@
+import argparse
 import os
-import re
 import shutil
 from pathlib import Path
-import argparse
-from util import xml_tools
 
+from util import xml_tools
 
 # Dateipfade
 DATA_DIR = "data/"

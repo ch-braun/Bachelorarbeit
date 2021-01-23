@@ -30,16 +30,16 @@ def run_data_mining() -> None:
         step02_data_analysis.do_step(args)
 
     if 3 not in args.skip_steps:
-        step03_data_preprocessing.do_step()
+        step03_data_preprocessing.do_step(args)
 
     if 4 not in args.skip_steps:
-        step04_classification.do_step()
+        step04_classification.do_step(args)
 
     if 5 not in args.skip_steps:
-        step05_evaluation.do_step()
+        step05_evaluation.do_step(args)
 
     if 6 not in args.skip_steps:
-        step06_knowledge_representation.do_step()
+        step06_knowledge_representation.do_step(args)
 
 
 if __name__ == '__main__':
