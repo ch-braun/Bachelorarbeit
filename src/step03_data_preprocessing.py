@@ -5,7 +5,7 @@ import xml.etree.ElementTree as elemTree
 from pathlib import Path
 
 from step01_data_collection import DATA_DIR, SPLIT_DIR
-from util import transformer
+from util import transformator
 from util import xml_tools
 
 FLATTENED_DIR = DATA_DIR + "flattened/"
@@ -20,8 +20,8 @@ def flatten_entity(entity_heap: elemTree.Element) -> dict:
 
         grouped_rows[element.tag].append(element)
 
-    for table_name in transformer.get_relevant_table_names():
-        transform_func = transformer.get_transform_func_for_table_rows(table_name=table_name)
+    for table_name in transformator.get_relevant_table_names():
+        transform_func = transformator.get_transform_func_for_table_rows(table_name=table_name)
         if table_name in grouped_rows.keys():
             flattened = transform_func(grouped_rows[table_name])
         else:

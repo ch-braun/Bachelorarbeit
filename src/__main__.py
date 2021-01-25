@@ -9,11 +9,11 @@ import step06_knowledge_representation
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--clean_scores', help='Remove ambiguously scored customers', action='store_true')
+    parser.add_argument('--clean-scores', help='Remove ambiguously scored customers', action='store_true')
     parser.add_argument('--overwrite', help='Overwrite existing files', action='store_true')
-    parser.add_argument('--skip_split', help='Skip splitting of files', action='store_true')
-    parser.add_argument('--skip_stats', help='Skip creation of statistics', action='store_true')
-    parser.add_argument('--skip_steps', help='Skip given steps (1 - 6)', nargs='+', metavar='N', type=int)
+    parser.add_argument('--skip-split', help='Skip splitting of files', action='store_true')
+    parser.add_argument('--skip-stats', help='Skip creation of statistics', action='store_true')
+    parser.add_argument('--skip-steps', help='Skip given steps (1 - 6)', nargs='+', metavar='N', type=int)
 
     return parser.parse_args()
 
