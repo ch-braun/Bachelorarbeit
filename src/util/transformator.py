@@ -92,11 +92,12 @@ def transform_but000(table_rows: list) -> dict:
 
 
 def transform_zdkk_rb_scores(table_rows: list):
+    # Bildet Klassifikation, nicht Datenbasis
     pass
 
 
 def transform_dfkkko(table_rows: list):
-    #TODO
+    # TODO
     target = {'dfkkko->blart->aa': 0}
 
     if len(table_rows) == 0:
@@ -128,8 +129,9 @@ def transform_but0bk(table_rows: list):
 
 
 def transform_fkkmaze(table_rows: list):
+    # TODO
     target = {
-
+        'fkkmaze->01->mazae': 0, 'fkkmaze->01->': 0
     }
 
     if len(table_rows) == 0:
@@ -137,11 +139,17 @@ def transform_fkkmaze(table_rows: list):
 
 
 def transform_fkkmako(table_rows: list):
+    # TODO
     pass
 
 
 def transform_dfkklocks(table_rows: list):
-    pass
+    target = {
+        'fkkmaze->01->mazae': 0, 'fkkmaze->01->': 0
+    }
+
+    if len(table_rows) == 0:
+        return target
 
 
 def transform_zdkk_mw_vtref_st(table_rows: list):
