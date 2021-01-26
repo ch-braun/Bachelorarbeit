@@ -14,7 +14,7 @@ def get_day_diff(date1: str, date2: str) -> int:
 
 
 def transform_but000(table_rows: list) -> dict:
-    target = {'but000->type->1': 0, 'but000->type->2': 0, 'but000->type->3': 0,
+    target = {'but000->type->1': 0, 'but000->type->2': 0,
 
               'but000->bpkind->p01': 0, 'but000->bpkind->p02': 0, 'but000->pbkind->pj': 0,
               'but000->bpkind->pn': 0, 'but000->bpkind->s4im': 0,
@@ -23,23 +23,17 @@ def transform_but000(table_rows: list) -> dict:
               'but000->title->0004': 0, 'but000->title->0005': 0, 'but000->title->0006': 0,
               'but000->title->0007': 0, 'but000->title->0008': 0, 'but000->title->0009': 0,
 
-              'but000->found_dat': 0,
-              'but000->liquid_dat': 0,
-
               'but000->xsexf': 0,
               'but000->xsexm': 0,
               'but000->xsexu': 0,
 
               'but000->birthdt': 0,
-              'but000->deathdt': 0,
+              'but000->natpers': 0,
 
-              'but000->perno': 0,
               'but000->crdat': 0,
               'but000->xdele': 0,
 
-              'but000->title_aca1->0001': 0, 'but000->title_aca1->0002': 0, 'but000->title_aca1->0003': 0,
-              'but000->title_aca1->0004': 0, 'but000->title_aca1->0005': 0, 'but000->title_aca1->0006': 0,
-              'but000->title_aca1->ding': 0, 'but000->title_aca1->dr': 0, 'but000->title_aca1->magi': 0,
+              'but000->title_aca1->0001': 0, 'but000->title_aca1->0002': 0,
 
               'but000->jobgr->privat': 0, 'but000->jobgr->unternehmen': 0,
 
@@ -56,24 +50,19 @@ def transform_but000(table_rows: list) -> dict:
 
     target['but000->title->' + str(row.find('title').text).lower()] = 1
 
-    target['but000->found_dat'] = get_day_diff(row.find('found_dat').text, EXTRACT_DATE)
-    target['but000->liquid_dat'] = get_day_diff(row.find('liquid_dat').text, EXTRACT_DATE)
-
     target['but000->xsexf'] = 1 if row.find('xsexf').text is not None else 0
     target['but000->xsexm'] = 1 if row.find('xsexm').text is not None else 0
     target['but000->xsexu'] = 1 if row.find('xsexu').text is not None else 0
 
     target['but000->birthdt'] = get_day_diff(row.find('birthdt').text, EXTRACT_DATE)
-    target['but000->deathdt'] = get_day_diff(row.find('deathdt').text, EXTRACT_DATE)
-
-    target['but000->perno'] = 1 if (int(row.find('perno').text) + int(row.find('zzperno').text)) > 0 else 0
+    target['but000->natpers'] = 1 if row.find('natpers').text == 'X' else 0
 
     target['but000->crdat'] = get_day_diff(row.find('crdat').text, EXTRACT_DATE)
 
     target['but000->xdele'] = 1 if row.find('xdele').text is not None else 0
 
     if row.find('title_aca1').text is not None:
-        target['but000->title_aca1->' + str(row.find('title_aca1').text).lower()] = 1
+        target['but000->title_aca1->' + str(row.find('title_aca1').text)] = 1
 
     if row.find('jobgr').text is not None:
         job_int = int(row.find('jobgr').text)
@@ -91,9 +80,55 @@ def transform_but000(table_rows: list) -> dict:
     return target
 
 
-def transform_zdkk_rb_scores(table_rows: list):
-    # Bildet Klassifikation, nicht Datenbasis
-    pass
+def transform_fkkvkp(table_rows: list):
+    target = {'fkkvkp->ezawe->selbst': 0, 'fkkvkp->ezawe->d': 0, 'fkkvkp->ezawe->3': 0, 'fkkvkp->ezawe->4': 0,
+              'fkkvkp->ezawe->5': 0, 'fkkvkp->ezawe->E': 0,
+
+              'fkkvkp->zztgr->1': 0, 'fkkvkp->zztgr->30': 0, 'fkkvkp->zztgr->40': 0,
+              'fkkvkp->zztgr->0': 0, 'fkkvkp->zztgr->7': 0,
+
+              'fkkvkp->zzcontaendat': 0,
+              'fkkvkp->zzloevmaendat': 0,
+              'fkkvkp->zzinkstaaendat': 0,
+
+              'fkkvkp->loevm': 0,
+              'fkkvkp->zzumst': 0,
+              'fkkvkp->zzvp2nato': 0,
+
+              'fkkvkp->zzinkstatus->1': 0, 'fkkvkp->zzinkstatus->2': 0,
+              'fkkvkp->zzinkstatus->3': 0, 'fkkvkp->zzinkstatus->4': 0,
+
+              'fkkvkp->zzcontstatus': 0,
+              'fkkvkp->abwre': 0
+              }
+
+    if len(table_rows) == 0:
+        return target
+
+    row = max(table_rows, key=lambda r: datetime.strptime(r.find('erdat').text, '%Y-%m-%d'))
+    if row.find('ezawe').text is not None:
+        target['fkkvkp->ezawe->' + str(row.find('ezawe').text)] = 1
+    else:
+        target['fkkvkp->ezawe->selbst'] = 1
+
+    if row.find('zztgr').text is not None:
+        target['fkkvkp->zztgr->' + str(row.find('ezawe').text)] = 1
+
+    target['fkkvkp->zzcontaendat'] = get_day_diff(row.find('zzcontaendat').text, EXTRACT_DATE)
+    target['fkkvkp->zzloevmaendat'] = get_day_diff(row.find('zzloevmaendat').text, EXTRACT_DATE)
+    target['fkkvkp->zzinkstaaendat'] = get_day_diff(row.find('zzinkstaaendat').text, EXTRACT_DATE)
+
+    target['fkkvkp->loevm'] = 1 if str(row.find('loevm').text) == 'X' else 0
+    target['fkkvkp->zzumst'] = 1 if str(row.find('zzumst').text) == '1' else 0
+    target['fkkvkp->zzvp2nato'] = 1 if row.find('zzvp2nato').text is not None else 0
+
+    if row.find('zzinkstatus').text is not None:
+        target['fkkvkp->zzinkstatus->' + str(row.find('zzinkstatus').text)] = 1
+
+    target['fkkvkp->zzcontstatus'] = 1 if row.find('zzcontstatus').text is not None else 0
+    target['fkkvkp->abwre'] = 1 if row.find('abwre').text is not None else 0
+
+    return target
 
 
 def transform_dfkkko(table_rows: list):
