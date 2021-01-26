@@ -7,11 +7,13 @@ FPZ_TAGS = ['min', 'lq', 'md', 'uq', 'max']
 def get_day_diff(date1: str, date2: str) -> int:
     if date1 in ['0000-00-00', '9999-99-99', ''] or date2 in ['0000-00-00', '9999-99-99', '']:
         return 0
-
-    date1 = datetime.strptime(date1, '%Y-%m-%d')
-    date2 = datetime.strptime(date2, '%Y-%m-%d')
-    delta = date1 - date2
-    return abs(delta.days)
+    try:
+        date1 = datetime.strptime(date1, '%Y-%m-%d')
+        date2 = datetime.strptime(date2, '%Y-%m-%d')
+        delta = date1 - date2
+        return abs(delta.days)
+    except ValueError:
+        return 0
 
 
 def transform_but000(table_rows: list) -> dict:
@@ -138,7 +140,7 @@ def transform_dfkkko(table_rows: list):
     blart = ['tr', 'zs', 'tg', 'ze', 'mk', 'gk', 'zm', 'gt', 'as', 'ik', 're', 'rh', 'ed', 'u1', 't2', 't1', 'sk', 'rp',
              'gu', 'gr', 'tz', 'tb', 'zu', 'aa', 'am', 'u3', 'zn', 'ga', 'xa', 'ts', 'ac', 'ag', 'af', 'an', 'u4', 'ec',
              'ti', 'gs', 'd3', 'ms', 'em', 'ao', 'mr', 'rm', 'rd', 'rc', 'ea']
-    abgrd = ['leer', 'ai', '1', 'ba', 'am', 'be', 'vj', 'if', '6', 'ac', 'mb', 'as', 'in', 'an', 'rl', 'wf']
+    abgrd = ['leer', 'ai', '01', 'ba', 'am', 'be', 'vj', 'if', '06', 'ac', 'mb', 'as', 'in', 'an', 'rl', 'wf']
     aginf = ['leer', 'ausgleich']
     columns = ['bldat', 'anzahl']
 
@@ -161,7 +163,8 @@ def transform_dfkkko(table_rows: list):
             date = get_day_diff(row.find('bldat').text, EXTRACT_DATE)
 
             if int(target["dfkkko->" + art + "->" + grd + "->" + inf + "->bldat"]) > 0:
-                date = min(date, int(target["dfkkko->" + art + "->" + grd + "->" + inf + "->bldat"]))
+                target["dfkkko->" + art + "->" + grd + "->" + inf + "->bldat"] = \
+                    min(date, int(target["dfkkko->" + art + "->" + grd + "->" + inf + "->bldat"]))
             else:
                 target["dfkkko->" + art + "->" + grd + "->" + inf + "->bldat"] = date
 
@@ -194,10 +197,11 @@ def transform_dfkkop(table_rows: list):
     temp = dict()
     for row in table_rows:
         art = row.find('blart').text
-        if art is not None:
+        posten_ruecknahme = row.find('augob').text
+        if art is not None and posten_ruecknahme is None:
             art = art.lower()
             rueckl = 'rueckl' if int(row.find('zzrlanz').text) > 0 else 'kein_rueckl'
-            ausgl = 'ausgl' if row.find('augst').text is not None else 'offen'
+            ausgl = 'ausgl' if row.find('augst').text is not None and row.find('xragl').text is None else 'offen'
             betrh = float(row.find('betrh').text)
             whang = int(row.find('whang').text)
             if row.find('augdt') is not None and row.find('faedn') is not None:
@@ -224,10 +228,6 @@ def transform_dfkkop(table_rows: list):
         elif (key.endswith('whang') or key.endswith('augdt')) and len(temp[key]) > 0:
             target[key] = round(float(sum(temp[key]) / len(temp[key])), 2)
 
-    for key in target:
-        if target[key] > 0:
-            print(key, ':', target[key])
-
     return target
 
 
@@ -249,22 +249,111 @@ def transform_but0bk(table_rows: list):
     return target
 
 
-def transform_fkkmaze(table_rows: list):
-    # TODO
-    target = {
-        'fkkmaze->01->mazae': 0, 'fkkmaze->01->': 0
-    }
+def transform_fkkmako(table_rows: list):
+    target = dict()
+
+    zzfokat = ['tk', 'co', 'hw']
+    columns = ['mazae', 'nexdt', 'zzlastdat', 'msalm->summe', 'msalm->durchschnitt',
+               'mahns->max', 'mahns->summe', 'mge1m', 'score']
+
+    for kat in zzfokat:
+        for c in columns:
+            target['fkkmako->' + kat + '->' + c] = 0
 
     if len(table_rows) == 0:
         return target
 
+    temp = dict()
+    for row in table_rows:
+        kat = row.find('zzfokat').text
+        storno = row.find('xmsto')
 
-def transform_fkkmako(table_rows: list):
-    # TODO
-    pass
+        if kat is not None and storno is None:
+            kat = kat.lower()
+
+            if row.find('mazae') is not None:
+                mazae = int(row.find('mazae').text)
+                if 'fkkmako->' + kat + '->mazae' not in temp.keys():
+                    temp['fkkmako->' + kat + '->mazae'] = []
+                temp['fkkmako->' + kat + '->mazae'].append(mazae)
+
+            if row.find('mahns') is not None:
+                mahns = int(row.find('mahns').text)
+                if 'fkkmako->' + kat + '->mahns' not in temp.keys():
+                    temp['fkkmako->' + kat + '->mahns'] = []
+                temp['fkkmako->' + kat + '->mahns'].append(mahns)
+
+            if row.find('ausdt') is not None and row.find('nexdt') is not None:
+                nexdt = get_day_diff(row.find('ausdt').text, row.find('nexdt').text)
+                if nexdt != 0:
+                    if 'fkkmako->' + kat + '->nexdt' not in temp.keys():
+                        temp['fkkmako->' + kat + '->nexdt'] = []
+                    temp['fkkmako->' + kat + '->nexdt'].append(nexdt)
+
+            if row.find('ausdt') is not None and row.find('zzlastdat') is not None:
+                lastdat = get_day_diff(row.find('ausdt').text, row.find('zzlastdat').text)
+                if lastdat != 0:
+                    if 'fkkmako->' + kat + '->zzlastdat' not in temp.keys():
+                        temp['fkkmako->' + kat + '->zzlastdat'] = []
+                    temp['fkkmako->' + kat + '->zzlastdat'].append(lastdat)
+
+            if row.find('msalm') is not None:
+                saldo = float(row.find('msalm').text)
+                if 'fkkmako->' + kat + '->msalm' not in temp.keys():
+                    temp['fkkmako->' + kat + '->msalm'] = []
+                temp['fkkmako->' + kat + '->msalm'].append(saldo)
+
+            if row.find('mge1m') is not None:
+                gebuehr = float(row.find('mge1m').text)
+                if 'fkkmako->' + kat + '->mge1m' not in temp.keys():
+                    temp['fkkmako->' + kat + '->mge1m'] = []
+                temp['fkkmako->' + kat + '->mge1m'].append(gebuehr)
+
+            if row.find('score') is not None:
+                score = int(row.find('score').text)
+                if 'fkkmako->' + kat + '->score' not in temp.keys():
+                    temp['fkkmako->' + kat + '->score'] = []
+                temp['fkkmako->' + kat + '->score'].append(score)
+
+    for key in temp.keys():
+        if key.endswith('mazae'):
+            target[key] = max(temp[key])
+
+        elif key.endswith('mahns'):
+            target[key + '->summe'] = sum(temp[key])
+            target[key + '->max'] = max(temp[key])
+
+        elif key.endswith('nexdt') and len(temp[key]) > 0:
+            target[key] = round(float(sum(temp[key]) / len(temp[key])), 2)
+
+        elif key.endswith('zzlastdat') and len(temp[key]) > 0:
+            target[key] = round(float(sum(temp[key]) / len(temp[key])), 2)
+
+        elif key.endswith('msalm'):
+            target[key + '->summe'] = sum(temp[key])
+            if len(temp[key]) > 0:
+                target[key + '->durchschnitt'] = round(float(sum(temp[key]) / len(temp[key])), 2)
+
+        elif key.endswith('mge1m') and len(temp[key]) > 0:
+            target[key] = round(float(sum(temp[key]) / len(temp[key])), 2)
+
+        elif key.endswith('score') and len(temp[key]) > 0:
+            target[key] = round(float(sum(temp[key]) / len(temp[key])), 2)
+
+    summe = 0
+    for key in target.keys():
+        if target[key] > 0:
+            summe += target[key]
+            print(key, ':', target[key])
+
+    if summe > 0:
+        exit(0)
+
+    return target
 
 
 def transform_dfkklocks(table_rows: list):
+    # TODO
     target = {
         'fkkmaze->01->mazae': 0, 'fkkmaze->01->': 0
     }
@@ -274,54 +363,67 @@ def transform_dfkklocks(table_rows: list):
 
 
 def transform_zdkk_mw_vtref_st(table_rows: list):
+    # TODO
     pass
 
 
 def transform_dfkkzk(table_rows: list):
+    # TODO
     pass
 
 
 def transform_dpayh(table_rows: list):
+    # TODO
     pass
 
 
 def transform_fkk_instpln_head(table_rows: list):
+    # TODO
     pass
 
 
 def transform_dfkkrk(table_rows: list):
+    # TODO
     pass
 
 
 def transform_zdkk_bapi_obcfc(table_rows: list):
+    # TODO
     pass
 
 
 def transform_zdkk_bapi_obbel(table_rows: list):
+    # TODO
     pass
 
 
 def transform_zdkk_zv_azahl(table_rows: list):
+    # TODO
     pass
 
 
 def transform_zdkk_crpo(table_rows: list):
+    # TODO
     pass
 
 
 def transform_zdkk_dk_san_bas(table_rows: list):
+    # TODO
     pass
 
 
 def transform_zdkk_abg_n_cfc(table_rows: list):
+    # TODO
     pass
 
 
 def transform_fkk_sec(table_rows: list):
+    # TODO
     pass
 
 
 def transform_fkk_sec_c(table_rows: list):
+    # TODO
     pass
 
 
