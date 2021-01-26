@@ -252,7 +252,7 @@ def transform_but0bk(table_rows: list):
 def transform_fkkmako(table_rows: list):
     target = dict()
 
-    zzfokat = ['tk', 'co', 'hw']
+    zzfokat = ['tk', 'co', 'hw', 'leer']
     columns = ['mazae', 'nexdt', 'zzlastdat', 'msalm->summe', 'msalm->durchschnitt',
                'mahns->max', 'mahns->summe', 'mge1m', 'score']
 
@@ -266,11 +266,14 @@ def transform_fkkmako(table_rows: list):
     temp = dict()
     for row in table_rows:
         kat = row.find('zzfokat').text
-        storno = row.find('xmsto')
+        storno = row.find('xmsto').text
 
-        if kat is not None and storno is None:
+        if kat is None:
+            kat = 'leer'
+        else:
             kat = kat.lower()
 
+        if storno != 'X':
             if row.find('mazae') is not None:
                 mazae = int(row.find('mazae').text)
                 if 'fkkmako->' + kat + '->mazae' not in temp.keys():
@@ -339,15 +342,6 @@ def transform_fkkmako(table_rows: list):
 
         elif key.endswith('score') and len(temp[key]) > 0:
             target[key] = round(float(sum(temp[key]) / len(temp[key])), 2)
-
-    summe = 0
-    for key in target.keys():
-        if target[key] > 0:
-            summe += target[key]
-            print(key, ':', target[key])
-
-    if summe > 0:
-        exit(0)
 
     return target
 
