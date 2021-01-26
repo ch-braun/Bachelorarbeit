@@ -133,7 +133,7 @@ def transform_fkkvkp(table_rows: list):
 
 
 def transform_dfkkko(table_rows: list):
-    target = dict()
+    target = {'dfkkko->anzahl_storno': 0}
 
     blart = ['tr', 'zs', 'tg', 'ze', 'mk', 'gk', 'zm', 'gt', 'as', 'ik', 're', 'rh', 'ed', 'u1', 't2', 't1', 'sk', 'rp',
              'gu', 'gr', 'tz', 'tb', 'zu', 'aa', 'am', 'u3', 'zn', 'ga', 'xa', 'ts', 'ac', 'ag', 'af', 'an', 'u4', 'ec',
@@ -153,7 +153,8 @@ def transform_dfkkko(table_rows: list):
 
     for row in table_rows:
         art = row.find('blart').text
-        if art is not None:
+        stbel = row.find('stbel').text
+        if art is not None and stbel is None:
             art = art.lower()
             grd = str(row.find('abgrd').text).lower() if row.find('abgrd').text is not None else 'leer'
             inf = 'ausgleich' if row.find('aginf') else 'leer'
@@ -166,11 +167,68 @@ def transform_dfkkko(table_rows: list):
 
             target["dfkkko->" + art + "->" + grd + "->" + inf + "->anzahl"] += 1
 
+        elif stbel is not None:
+            target['dfkkko->anzahl_storno'] += 1
+
     return target
 
 
 def transform_dfkkop(table_rows: list):
-    pass
+    target = dict()
+
+    blart = ['tr', 'tg', 'mk', 'ik', 're', 'rh', 'ze', 'zm', 'gk', 'ed', 'u1', 't2', 't1', 'sk', 'rp', 'gu', 'gr', 'as',
+             'tz', 'tb', 'am', 'ga', 'xa', 'ts', 'aa', 'ac', 'ag', 'u3', 'gt', 'zn', 'an', 'u4', 'zu', 'gs', 'af', 'ms',
+             'mr', 'zs', 'rm', 'rd', 'rc', 'ec', 'd3', 'ea']
+    zzrlanz = ['kein_rueckl', 'rueckl']
+    augst = ['offen', 'ausgl']
+    columns = ['augdt', 'betrh', 'whang']
+    
+    for art in blart:
+        for rueckl in zzrlanz:
+            for ausgl in augst:
+                for c in columns:
+                    target['dfkkop->' + art + '->' + rueckl + '->' + ausgl + '->' + c] = 0
+
+    if len(table_rows) == 0:
+        return target
+    temp = dict()
+    for row in table_rows:
+        art = row.find('blart').text
+        if art is not None:
+            art = art.lower()
+            rueckl = 'rueckl' if int(row.find('zzrlanz').text) > 0 else 'kein_rueckl'
+            ausgl = 'ausgl' if row.find('augst').text is not None else 'offen'
+            betrh = float(row.find('betrh').text)
+            whang = int(row.find('whang').text)
+            if row.find('augdt') is not None and row.find('faedn') is not None:
+                augdt = get_day_diff(row.find('augdt').text, row.find('faedn').text)
+            else:
+                augdt = 0
+
+            if 'dfkkop->' + art + '->' + rueckl + '->' + ausgl + '->betrh' not in temp.keys():
+                temp['dfkkop->' + art + '->' + rueckl + '->' + ausgl + '->betrh'] = []
+            temp['dfkkop->' + art + '->' + rueckl + '->' + ausgl + '->betrh'].append(betrh)
+
+            if 'dfkkop->' + art + '->' + rueckl + '->' + ausgl + '->whang' not in temp.keys():
+                temp['dfkkop->' + art + '->' + rueckl + '->' + ausgl + '->whang'] = []
+            temp['dfkkop->' + art + '->' + rueckl + '->' + ausgl + '->whang'].append(whang)
+
+            if 'dfkkop->' + art + '->' + rueckl + '->' + ausgl + '->augdt' not in temp.keys():
+                temp['dfkkop->' + art + '->' + rueckl + '->' + ausgl + '->augdt'] = []
+            if augdt != 0:
+                temp['dfkkop->' + art + '->' + rueckl + '->' + ausgl + '->augdt'].append(augdt)
+
+    for key in temp.keys():
+        if key.endswith('betrh'):
+            target[key] = round(sum(temp[key]), 2)
+        elif (key.endswith('whang') or key.endswith('augdt')) and len(temp[key]) > 0:
+            target[key] = round(float(sum(temp[key]) / len(temp[key])), 2)
+
+    for key in target:
+        if target[key] > 0:
+            print(key, ':', target[key])
+
+    return target
 
 
 def transform_but0bk(table_rows: list):
