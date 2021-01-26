@@ -1,6 +1,7 @@
 from datetime import datetime
 
 EXTRACT_DATE = '2020-12-16'
+FPZ_TAGS = ['min', 'lq', 'md', 'uq', 'max']
 
 
 def get_day_diff(date1: str, date2: str) -> int:
@@ -82,7 +83,7 @@ def transform_but000(table_rows: list) -> dict:
 
 def transform_fkkvkp(table_rows: list):
     target = {'fkkvkp->ezawe->selbst': 0, 'fkkvkp->ezawe->d': 0, 'fkkvkp->ezawe->3': 0, 'fkkvkp->ezawe->4': 0,
-              'fkkvkp->ezawe->5': 0, 'fkkvkp->ezawe->E': 0,
+              'fkkvkp->ezawe->5': 0, 'fkkvkp->ezawe->e': 0,
 
               'fkkvkp->zztgr->1': 0, 'fkkvkp->zztgr->30': 0, 'fkkvkp->zztgr->40': 0,
               'fkkvkp->zztgr->0': 0, 'fkkvkp->zztgr->7': 0,
@@ -107,12 +108,12 @@ def transform_fkkvkp(table_rows: list):
 
     row = max(table_rows, key=lambda r: datetime.strptime(r.find('erdat').text, '%Y-%m-%d'))
     if row.find('ezawe').text is not None:
-        target['fkkvkp->ezawe->' + str(row.find('ezawe').text)] = 1
+        target['fkkvkp->ezawe->' + str(row.find('ezawe').text).lower()] = 1
     else:
         target['fkkvkp->ezawe->selbst'] = 1
 
     if row.find('zztgr').text is not None:
-        target['fkkvkp->zztgr->' + str(row.find('ezawe').text)] = 1
+        target['fkkvkp->zztgr->' + str(int(row.find('zztgr').text)).lower()] = 1
 
     target['fkkvkp->zzcontaendat'] = get_day_diff(row.find('zzcontaendat').text, EXTRACT_DATE)
     target['fkkvkp->zzloevmaendat'] = get_day_diff(row.find('zzloevmaendat').text, EXTRACT_DATE)
@@ -123,7 +124,7 @@ def transform_fkkvkp(table_rows: list):
     target['fkkvkp->zzvp2nato'] = 1 if row.find('zzvp2nato').text is not None else 0
 
     if row.find('zzinkstatus').text is not None:
-        target['fkkvkp->zzinkstatus->' + str(row.find('zzinkstatus').text)] = 1
+        target['fkkvkp->zzinkstatus->' + str(row.find('zzinkstatus').text).lower()] = 1
 
     target['fkkvkp->zzcontstatus'] = 1 if row.find('zzcontstatus').text is not None else 0
     target['fkkvkp->abwre'] = 1 if row.find('abwre').text is not None else 0
@@ -132,11 +133,38 @@ def transform_fkkvkp(table_rows: list):
 
 
 def transform_dfkkko(table_rows: list):
-    # TODO
-    target = {'dfkkko->blart->aa': 0}
+    target = dict()
+
+    blart = ['tr', 'zs', 'tg', 'ze', 'mk', 'gk', 'zm', 'gt', 'as', 'ik', 're', 'rh', 'ed', 'u1', 't2', 't1', 'sk', 'rp',
+             'gu', 'gr', 'tz', 'tb', 'zu', 'aa', 'am', 'u3', 'zn', 'ga', 'xa', 'ts', 'ac', 'ag', 'af', 'an', 'u4', 'ec',
+             'ti', 'gs', 'd3', 'ms', 'em', 'ao', 'mr', 'rm', 'rd', 'rc', 'ea']
+    abgrd = ['leer', 'ai', '1', 'ba', 'am', 'be', 'vj', 'if', '6', 'ac', 'mb', 'as', 'in', 'an', 'rl', 'wf']
+    aginf = ['leer', 'ausgleich']
+    columns = ['bldat', 'anzahl']
+
+    for art in blart:
+        for grd in abgrd:
+            for inf in aginf:
+                for c in columns:
+                    target["dfkkko->" + art + "->" + grd + "->" + inf + "->" + c] = 0
 
     if len(table_rows) == 0:
         return target
+
+    for row in table_rows:
+        art = row.find('blart').text
+        if art is not None:
+            art = art.lower()
+            grd = str(row.find('abgrd').text).lower() if row.find('abgrd').text is not None else 'leer'
+            inf = 'ausgleich' if row.find('aginf') else 'leer'
+            date = get_day_diff(row.find('bldat').text, EXTRACT_DATE)
+
+            if int(target["dfkkko->" + art + "->" + grd + "->" + inf + "->bldat"]) > 0:
+                date = min(date, int(target["dfkkko->" + art + "->" + grd + "->" + inf + "->bldat"]))
+            else:
+                target["dfkkko->" + art + "->" + grd + "->" + inf + "->bldat"] = date
+
+            target["dfkkko->" + art + "->" + grd + "->" + inf + "->anzahl"] += 1
 
     return target
 
