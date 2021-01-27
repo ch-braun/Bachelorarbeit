@@ -186,7 +186,7 @@ def transform_dfkkop(table_rows: list):
     zzrlanz = ['kein_rueckl', 'rueckl']
     augst = ['offen', 'ausgl']
     columns = ['augdt', 'betrh', 'whang']
-    
+
     for art in blart:
         for rueckl in zzrlanz:
             for ausgl in augst:
@@ -529,33 +529,54 @@ def transform_fkk_instpln_head(table_rows: list):
         for deagd in sttdt[kat].keys():
             if len(sttdt[kat][deagd]) > 0:
                 target['fkk_instpln_head->' + kat + '->' + deagd + '->anzahl'] = len(sttdt[kat][deagd])
-                target['fkk_instpln_head->' + kat + '->' + deagd + '->sttdt'] = \
-                    max(filter(lambda d: d != 0, sttdt[kat][deagd]))
-
-    summe = 0
-    for key in target.keys():
-        if target[key] > 0:
-            if key.endswith('deoff->summe'):
-                summe += target[key]
-            print(key, ':', target[key])
-
-    if summe > 0:
-        exit(0)
+                if len(list(filter(lambda d: d != 0, sttdt[kat][deagd]))) > 0:
+                    target['fkk_instpln_head->' + kat + '->' + deagd + '->sttdt'] = \
+                        max(filter(lambda d: d != 0, sttdt[kat][deagd]))
 
     return target
 
 
 def transform_dfkkrk(table_rows: list):
-    # TODO
-    pass
+    target = {'dfkkrk->re->valut': 0, 'dfkkrk->re->anzahl': 0,
+              'dfkkrk->re->summh->summe': 0, 'dfkkrk->re->summh->max': 0, 'dfkkrk->re->summh->durchschnitt': 0,
+              'dfkkrk->rc->valut': 0, 'dfkkrk->rc->anzahl': 0,
+              'dfkkrk->rc->summh->summe': 0, 'dfkkrk->rc->summh->max': 0, 'dfkkrk->rc->summh->durchschnitt': 0
+              }
+
+    if len(table_rows) == 0:
+        return target
+
+    betraege = {'re': list(), 'rc': list()}
+    daten = {'re': list(), 'rc': list()}
+    for row in table_rows:
+        blart = row.find('blart').text
+        if blart is not None:
+            blart = blart.lower()
+            summh = row.find('summh').text
+            valut = row.find('valut').text
+            if summh is not None:
+                betraege[blart].append(float(summh))
+
+            if valut is not None:
+                daten[blart].append(get_day_diff(valut, EXTRACT_DATE))
+
+    for blart in betraege:
+        if len(betraege[blart]) > 0:
+            target['dfkkrk->' + blart + '->summh->summe'] = round(sum(betraege[blart]), 2)
+            target['dfkkrk->' + blart + '->summh->max'] = round(max(betraege[blart]), 2)
+            target['dfkkrk->' + blart + '->summh->durchschnitt'] = \
+                round(float(sum(betraege[blart]) / len(betraege[blart])), 2)
+
+    for blart in daten:
+        if len(list(filter(lambda d: d != 0, daten[blart]))) > 0:
+            target['dfkkrk->' + blart + '->valut'] = max(filter(lambda d: d != 0, daten[blart]))
+
+        target['dfkkrk->' + blart + '->anzahl'] = len(daten[blart])
+
+    return target
 
 
 def transform_zdkk_bapi_obcfc(table_rows: list):
-    # TODO
-    pass
-
-
-def transform_zdkk_bapi_obbel(table_rows: list):
     # TODO
     pass
 
