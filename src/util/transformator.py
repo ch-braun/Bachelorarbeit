@@ -1,4 +1,5 @@
 from datetime import datetime
+import numpy as np
 
 EXTRACT_DATE = '2020-12-16'
 FPZ_TAGS = ['min', 'lq', 'md', 'uq', 'max']
@@ -347,28 +348,131 @@ def transform_fkkmako(table_rows: list):
 
 
 def transform_dfkklocks(table_rows: list):
-    # TODO
-    target = {
-        'fkkmaze->01->mazae': 0, 'fkkmaze->01->': 0
-    }
+    target = dict()
+
+    lockr = ['ß', 'm', 'l', 'c', 'a', 'h', '3', 'f', 'e', 'b', 'j', 'w', 'k', '5', 'p', 'ä', 'd', 't', '2', 'y', '7',
+             'ü', 'v', '1', 'i', 'g', '9', '4', '6', 'o', 'n', 'u', 'r', 'z', 's', 'x', 'q']
+
+    for reason in lockr:
+        target['dfkklocks->' + reason + '->anzahl'] = 0
 
     if len(table_rows) == 0:
         return target
 
+    for row in table_rows:
+        reason = row.find('lockr').text
+        if reason is not None:
+            target['dfkklocks->' + reason.lower() + '->anzahl'] += 1
+
+    return target
+
 
 def transform_zdkk_mw_vtref_st(table_rows: list):
-    # TODO
-    pass
+    target = {'zdkk_mw_vtref_st->zzvtref_status->latest': 0, 'zdkk_mw_vtref_st->zzvtref_status->min': 0,
+              'zdkk_mw_vtref_st->zzvtref_status->q1': 0, 'zdkk_mw_vtref_st->zzvtref_status->median': 0,
+              'zdkk_mw_vtref_st->zzvtref_status->q3': 0, 'zdkk_mw_vtref_st->zzvtref_status->max': 0,
+              'zdkk_mw_vtref_st->zzvtref_status->anzahl': 0}
+
+    if len(table_rows) == 0:
+        return target
+
+    latest = None
+    latest_date = None
+    status = list()
+    for row in table_rows:
+        row_stat = row.find('zzvtref_status').text
+        if row_stat is not None:
+            row_stat = int(row_stat)
+            status.append(row_stat)
+            if latest is None or latest_date < row.find('aedat').text:
+                latest = row_stat
+                latest_date = row.find('aedat').text
+
+    target['zdkk_mw_vtref_st->zzvtref_status->latest'] = latest
+    target['zdkk_mw_vtref_st->zzvtref_status->anzahl'] = len(status)
+    if len(status) > 0:
+        target['zdkk_mw_vtref_st->zzvtref_status->min'] = min(status)
+        target['zdkk_mw_vtref_st->zzvtref_status->q1'] = np.percentile(status, 25)
+        target['zdkk_mw_vtref_st->zzvtref_status->median'] = np.percentile(status, 50)
+        target['zdkk_mw_vtref_st->zzvtref_status->q3'] = np.percentile(status, 75)
+        target['zdkk_mw_vtref_st->zzvtref_status->max'] = max(status)
+
+    return target
 
 
 def transform_dfkkzk(table_rows: list):
-    # TODO
-    pass
+    target = {'dfkkzk->budat->latest': 0,
+              'dfkkzk->summs->summe': 0, 'dfkkzk->summs->durchschnitt': 0,
+              'dfkkzk->anzahl': 0}
+
+    if len(table_rows) == 0:
+        return target
+
+    summe = 0.0
+    anzahl = 0
+    latest = 0
+    for row in table_rows:
+        budat = row.find('budat').text
+        summs = row.find('summs').text
+
+        if summs is not None:
+            summe += float(summs)
+            anzahl += 1
+
+        if budat is not None:
+            diff = get_day_diff(budat, EXTRACT_DATE)
+            if diff != 0 and (latest == 0 or diff < latest):
+                latest = diff
+
+    target['dfkkzk->budat->latest'] = latest
+    target['dfkkzk->summs->summe'] = round(summe, 2)
+    target['dfkkzk->anzahl'] = anzahl
+    if anzahl > 0:
+        target['dfkkzk->summs->durchschnitt'] = round(float(summe / anzahl), 2)
+
+    return target
 
 
 def transform_dpayh(table_rows: list):
-    # TODO
-    pass
+    target = {'dpayh->valut->latest': 0,
+              'dpayh->rbetr->summe': 0, 'dpayh->rbetr->durchschnitt': 0,
+              'dpayh->anzahl': 0}
+
+    if len(table_rows) == 0:
+        return target
+
+    summe = 0.0
+    anzahl = 0
+    latest = 0
+    for row in table_rows:
+        valut = row.find('valut').text
+        rbetr = row.find('rbetr').text
+
+        if rbetr is not None:
+            summe += float(rbetr)
+            anzahl += 1
+
+        if valut is not None:
+            diff = get_day_diff(valut, EXTRACT_DATE)
+            if diff != 0 and (latest == 0 or diff < latest):
+                latest = diff
+
+    target['dpayh->valut->latest'] = latest
+    target['dpayh->rbetr->summe'] = round(summe, 2)
+    target['dpayh->anzahl'] = anzahl
+    if anzahl > 0:
+        target['dpayh->rbetr->durchschnitt'] = round(float(summe / anzahl), 2)
+
+    summe = 0
+    for key in target.keys():
+        if target[key] > 0:
+            summe += target[key]
+            print(key, ':', target[key])
+
+    if summe > 0:
+        exit(0)
+
+    return target
 
 
 def transform_fkk_instpln_head(table_rows: list):
