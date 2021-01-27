@@ -441,16 +441,14 @@ def transform_dpayh(table_rows: list):
     if len(table_rows) == 0:
         return target
 
-    summe = 0.0
-    anzahl = 0
+    betraege = list()
     latest = 0
     for row in table_rows:
         valut = row.find('valut').text
         rbetr = row.find('rbetr').text
 
         if rbetr is not None:
-            summe += float(rbetr)
-            anzahl += 1
+            betraege.append(float(rbetr))
 
         if valut is not None:
             diff = get_day_diff(valut, EXTRACT_DATE)
@@ -458,26 +456,93 @@ def transform_dpayh(table_rows: list):
                 latest = diff
 
     target['dpayh->valut->latest'] = latest
-    target['dpayh->rbetr->summe'] = round(summe, 2)
-    target['dpayh->anzahl'] = anzahl
-    if anzahl > 0:
-        target['dpayh->rbetr->durchschnitt'] = round(float(summe / anzahl), 2)
+    target['dpayh->rbetr->summe'] = round(sum(betraege), 2)
+    target['dpayh->anzahl'] = len(betraege)
+    if len(betraege):
+        target['dpayh->rbetr->durchschnitt'] = round(float(sum(betraege) / len(betraege)), 2)
+
+    return target
+
+
+def transform_fkk_instpln_head(table_rows: list):
+    target = dict()
+
+    rpcat = ['sk', 'rp', 'rf']
+    deagd = ['leer', '03', '04', '05']
+
+    columns = ['anzahl', 'deadt', 'deoff->durchschnitt', 'deoff->summe', 'deoff->max', 'sttdt', 'ninst']
+
+    for kat in rpcat:
+        for grund in deagd:
+            for c in columns:
+                target['fkk_instpln_head->' + kat + '->' + grund + '->' + c] = 0
+
+    if len(table_rows) == 0:
+        return target
+
+    deoff = dict()
+    ninst = dict()
+    sttdt = dict()
+    for row in table_rows:
+        kat = row.find('rpcat').text
+        deagd = row.find('deagd').text
+        if kat is not None:
+            kat = kat.lower()
+            if deagd is not None:
+                deagd = deagd.lower()
+            else:
+                deagd = 'leer'
+
+            if kat not in deoff.keys():
+                deoff[kat] = dict()
+            if deagd not in deoff[kat].keys():
+                deoff[kat][deagd] = list()
+            deoff[kat][deagd].append(float(row.find('deoff').text))
+
+            if kat not in ninst.keys():
+                ninst[kat] = dict()
+            if deagd not in ninst[kat].keys():
+                ninst[kat][deagd] = list()
+            ninst[kat][deagd].append(int(row.find('ninst').text))
+
+            if kat not in sttdt.keys():
+                sttdt[kat] = dict()
+            if deagd not in sttdt[kat].keys():
+                sttdt[kat][deagd] = list()
+            sttdt[kat][deagd].append(get_day_diff(row.find('sttdt').text, EXTRACT_DATE))
+
+    for kat in deoff.keys():
+        for deagd in deoff[kat].keys():
+            target['fkk_instpln_head->' + kat + '->' + deagd + '->deoff->summe'] = round(sum(deoff[kat][deagd]), 2)
+            target['fkk_instpln_head->' + kat + '->' + deagd + '->deoff->max'] = round(max(deoff[kat][deagd]), 2)
+            if len(deoff[kat][deagd]) > 0:
+                target['fkk_instpln_head->' + kat + '->' + deagd + '->deoff->durchschnitt'] = \
+                    round(float(sum(deoff[kat][deagd]) / len(deoff[kat][deagd])), 2)
+
+    for kat in ninst.keys():
+        for deagd in ninst[kat].keys():
+            if len(ninst[kat][deagd]) > 0:
+                target['fkk_instpln_head->' + kat + '->' + deagd + '->ninst'] = \
+                    round(float(sum(ninst[kat][deagd]) / len(ninst[kat][deagd])), 2)
+
+    for kat in sttdt.keys():
+        for deagd in sttdt[kat].keys():
+            if len(sttdt[kat][deagd]) > 0:
+                target['fkk_instpln_head->' + kat + '->' + deagd + '->anzahl'] = len(sttdt[kat][deagd])
+                target['fkk_instpln_head->' + kat + '->' + deagd + '->sttdt'] = \
+                    max(filter(lambda d: d != 0, sttdt[kat][deagd]))
 
     summe = 0
     for key in target.keys():
         if target[key] > 0:
-            summe += target[key]
+            if key.endswith('deoff->summe'):
+                summe += target[key]
             print(key, ':', target[key])
 
     if summe > 0:
         exit(0)
 
     return target
-
-
-def transform_fkk_instpln_head(table_rows: list):
-    # TODO
-    pass
 
 
 def transform_dfkkrk(table_rows: list):
