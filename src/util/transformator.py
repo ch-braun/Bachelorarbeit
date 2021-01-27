@@ -576,19 +576,89 @@ def transform_dfkkrk(table_rows: list):
     return target
 
 
-def transform_zdkk_bapi_obcfc(table_rows: list):
-    # TODO
-    pass
+def transform_zdkk_crpo(table_rows: list):
+    target = {'zdkk_crpo->betrw->summe': 0, 'zdkk_crpo->betrw->max': 0, 'zdkk_crpo->betrw->durchschnitt': 0,
+              'zdkk_crpo->zzbudat': 0, 'zdkk_crpo->anzahl': 0}
+
+    if len(table_rows) == 0:
+        return target
+
+    betraege = list()
+    latest = 0
+    for row in table_rows:
+        betrw = row.find('betrw').text
+        budat = row.find('zzbudat').text
+
+        if betrw is not None:
+            betraege.append(abs(float(betrw)))
+
+        if budat is not None:
+            dat = get_day_diff(budat, EXTRACT_DATE)
+            if dat != 0 and (latest == 0 or dat < latest):
+                latest = dat
+
+    target['zdkk_crpo->zzbudat'] = latest
+    if len(betraege) > 0:
+        target['zdkk_crpo->anzahl'] = len(betraege)
+        target['zdkk_crpo->betrw->summe'] = round(sum(betraege), 2)
+        target['zdkk_crpo->betrw->max'] = round(max(betraege), 2)
+        target['zdkk_crpo->betrw->durchschnitt'] = round(float(sum(betraege) / len(betraege)), 2)
+
+    return target
 
 
 def transform_zdkk_zv_azahl(table_rows: list):
-    # TODO
-    pass
+    target = dict()
 
+    rzawe = ['leer', '3', '4', 'v', 'w']
+    paymmeth = ['leer', 'paypal', 'creditcard_computop']
 
-def transform_zdkk_crpo(table_rows: list):
-    # TODO
-    pass
+    columns = ['rwbtr->summe', 'rwbtr->max', 'rwbtr->durchschnitt', 'anzahl']
+
+    for weg in rzawe:
+        for method in paymmeth:
+            for c in columns:
+                target['zdkk_zv_azahl->' + weg + '->' + method + '->' + c] = 0
+
+    if len(table_rows) == 0:
+        return target
+
+    betraege = dict()
+    for row in table_rows:
+        weg = row.find('rzawe').text
+        method = row.find('paymmeth').text
+        rwbtr = row.find('rwbtr').text
+
+        if weg is not None:
+            weg = weg.lower()
+        else:
+            weg = 'leer'
+
+        if method is not None:
+            method = method.lower()
+        else:
+            method = 'leer'
+        if rwbtr is not None:
+            if weg not in betraege.keys():
+                betraege[weg] = dict()
+
+            if method not in betraege[weg].keys():
+                betraege[weg][method] = list()
+
+            betraege[weg][method].append(float(rwbtr))
+
+    for weg in betraege.keys():
+        for method in betraege[weg].keys():
+            if len(betraege[weg][method]) > 0:
+                target['zdkk_zv_azahl->' + weg + '->' + method + '->rwbtr->summe'] = \
+                    round(sum(betraege[weg][method]), 2)
+                target['zdkk_zv_azahl->' + weg + '->' + method + '->rwbtr->max'] = \
+                    round(max(betraege[weg][method]), 2)
+                target['zdkk_zv_azahl->' + weg + '->' + method + '->rwbtr->durchschnitt'] = \
+                    round(float(sum(betraege[weg][method]) / len(betraege[weg][method])), 2)
+                target['zdkk_zv_azahl->' + weg + '->' + method + '->anzahl'] = len(betraege[weg][method])
+
+    return target
 
 
 def transform_zdkk_dk_san_bas(table_rows: list):
