@@ -20,7 +20,7 @@ def get_day_diff(date1: str, date2: str) -> int:
 def transform_but000(table_rows: list) -> dict:
     target = {'but000->type->1': 0, 'but000->type->2': 0,
 
-              'but000->bpkind->p01': 0, 'but000->bpkind->p02': 0, 'but000->pbkind->pj': 0,
+              'but000->bpkind->p01': 0, 'but000->bpkind->p02': 0, 'but000->bpkind->pj': 0,
               'but000->bpkind->pn': 0, 'but000->bpkind->s4im': 0,
 
               'but000->title->0001': 0, 'but000->title->0002': 0, 'but000->title->0003': 0,

@@ -48,7 +48,11 @@ def preprocess_entities() -> None:
             flattened_entities[entity_name] = flattened
 
             counter += 1
-            print(counter, filename, "preprocessed")
+            breite = 0
+            for key in flattened.keys():
+                breite += len(flattened[key].keys())
+
+            print(counter, filename, "preprocessed", breite)
 
     print(flattened_entities)
 
