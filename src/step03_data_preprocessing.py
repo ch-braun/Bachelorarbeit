@@ -1,4 +1,6 @@
 import argparse
+import shutil
+from datetime import datetime
 import os
 import re
 import xml.etree.ElementTree as elemTree
@@ -40,10 +42,24 @@ def flatten_entity(entity_heap: elemTree.Element) -> dict:
     return flattened_entity
 
 
-def preprocess_entities() -> None:
-    Path(FLATTENED_DIR).mkdir(parents=True, exist_ok=True)
+def save_entity_to_file(entity: dict, output_dir: str, entity_name: str) -> None:
+    filename = output_dir + entity_name + '.csv'
+    file = open(filename, "w", encoding="utf-8")
+    for key_tab in sorted(entity.keys()):
+        for key_attr in sorted(entity[key_tab].keys()):
+            file.write(str(key_attr) + ';' + str(entity[key_tab][key_attr]) + '\n')
+
+    file.close()
+
+
+def preprocess_entities(no_save: bool) -> None:
+    timestamp = datetime.now().strftime("%Y_%m_%d_(%H-%M-%S)")
+    current_output_dir = FLATTENED_DIR + timestamp + "/"
+    if not no_save:    
+        Path(current_output_dir).mkdir(parents=True, exist_ok=True)
 
     flattened_entities = dict()
+
     print("Preprocessing entities...")
     counter = 0
     for filename in os.listdir(SPLIT_DIR):
@@ -51,8 +67,11 @@ def preprocess_entities() -> None:
             heap = xml_tools.get_heap_node(SPLIT_DIR + filename)
 
             flattened = flatten_entity(heap)
-            entity_name = re.sub(r'score.*cb', '', filename.lower())
-            flattened_entities[entity_name] = flattened
+            entity_name = re.sub(r'score.*cb', '', filename.lower()).replace('.xml', '')
+            if not no_save:
+                save_entity_to_file(entity=flattened, output_dir=current_output_dir, entity_name=entity_name)
+            else:
+                flattened_entities[entity_name] = flattened
 
             counter += 1
             breite = 0
@@ -65,4 +84,7 @@ def preprocess_entities() -> None:
 
 
 def do_step(args: argparse.Namespace) -> None:
-    preprocess_entities()
+    if args.clear_flattened:
+        shutil.rmtree(FLATTENED_DIR)
+
+    preprocess_entities(args.no_save)

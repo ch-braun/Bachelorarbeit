@@ -780,15 +780,6 @@ def transform_fkk_sec(sek: list, sek_c=None):
                 target['fkk_sec->' + grund + '->' + storno + '->request->durchschnitt'] = \
                     round(float(sum(betraege[grund][storno]) / len(betraege[grund][storno])), 2)
 
-    summe = 0
-    for key in target.keys():
-        if target[key] > 0:
-            summe += target[key]
-            print(key, ':', target[key])
-
-    if summe > 0:
-        exit(0)
-
     return target
 
 
