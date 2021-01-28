@@ -48,11 +48,12 @@ def transform_but000(table_rows: list) -> dict:
         return target
 
     row = max(table_rows, key=lambda r: datetime.strptime(r.find('crdat').text, '%Y-%m-%d'))
-
-    target['but000->type->' + str(row.find('type').text).lower()] = 1
-    target['but000->bpkind->' + str(row.find('bpkind').text).lower()] = 1
-
-    target['but000->title->' + str(row.find('title').text).lower()] = 1
+    if row.find('type').text is not None:
+        target['but000->type->' + str(row.find('type').text).lower()] = 1
+    if row.find('bpkind').text is not None:
+        target['but000->bpkind->' + str(row.find('bpkind').text).lower()] = 1
+    if row.find('title').text is not None:
+        target['but000->title->' + str(row.find('title').text).lower()] = 1
 
     target['but000->xsexf'] = 1 if row.find('xsexf').text is not None else 0
     target['but000->xsexm'] = 1 if row.find('xsexm').text is not None else 0
@@ -468,7 +469,7 @@ def transform_fkk_instpln_head(table_rows: list):
     target = dict()
 
     rpcat = ['sk', 'rp', 'rf']
-    deagd = ['leer', '03', '04', '05']
+    deagd = ['leer', '01', '03', '04', '05', '06']
 
     columns = ['anzahl', 'deadt', 'deoff->durchschnitt', 'deoff->summe', 'deoff->max', 'sttdt', 'ninst']
 

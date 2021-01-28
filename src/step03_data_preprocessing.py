@@ -117,6 +117,12 @@ def preprocess_entities(process_count: int) -> None:
     for r in readers:
         print(os.read(r, 1000).decode())
 
+    for filename in list(filter(lambda f: f.endswith('.lock'), os.listdir(current_value_output_dir))):
+        try:
+            os.remove(filename)
+        except FileNotFoundError:
+            continue
+
 
 def do_step(args: argparse.Namespace) -> None:
     if args.clear_flattened:
