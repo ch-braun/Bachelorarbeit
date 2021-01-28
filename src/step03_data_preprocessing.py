@@ -23,7 +23,14 @@ def flatten_entity(entity_heap: elemTree.Element) -> dict:
     for table_name in transformator.get_relevant_table_names():
         transform_func = transformator.get_transform_func_for_table_rows(table_name=table_name)
         if table_name in grouped_rows.keys():
-            flattened = transform_func(grouped_rows[table_name])
+            if table_name != 'fkk_sec' and table_name != 'fkk_sec_c':
+                flattened = transform_func(grouped_rows[table_name])
+            elif table_name == 'fkk_sec':
+                sek = grouped_rows['fkk_sec'] if 'fkk_sec' in grouped_rows.keys() else list()
+                sek_c = grouped_rows['fkk_sec_c'] if 'fkk_sec_c' in grouped_rows.keys() else list()
+                flattened = transform_func(sek, sek_c)
+            else:
+                flattened = dict()
         else:
             flattened = transform_func(list())
 

@@ -662,23 +662,134 @@ def transform_zdkk_zv_azahl(table_rows: list):
 
 
 def transform_zdkk_dk_san_bas(table_rows: list):
-    # TODO
-    pass
+    target = dict()
+
+    sanktion = ['spg', 'nbea', 'mt', 'rku', 'spr', 'kuna', 'kung', 'vl']
+    historie = ['aktuell', 'historie']
+    columns = ['san_datum', 'betrag->summe', 'betrag->max', 'betrag->durchschnitt', 'anzahl']
+
+    for san in sanktion:
+        for his in historie:
+            for c in columns:
+                target['zdkk_dk_san_bas->' + san + '->' + his + '->' + c] = 0
+
+    if len(table_rows) == 0:
+        return target
+
+    dates = dict()
+    betraege = dict()
+    for row in table_rows:
+        san = row.find('sanktion').text
+        if san is not None:
+            san = san.lower()
+            his = row.find('historie').text
+            san_datum = row.find('san_datum').text
+            betrag = row.find('betrag').text
+
+            his = 'historie' if his is not None else 'aktuell'
+            san_datum = get_day_diff(san_datum, EXTRACT_DATE) if san_datum is not None else 0
+            betrag = float(betrag) if betrag is not None else 0.0
+
+            if san not in dates.keys():
+                dates[san] = dict()
+            if his not in dates[san].keys():
+                dates[san][his] = list()
+            dates[san][his].append(san_datum)
+
+            if san not in betraege.keys():
+                betraege[san] = dict()
+            if his not in betraege[san].keys():
+                betraege[san][his] = list()
+            betraege[san][his].append(betrag)
+
+    for san in dates.keys():
+        for his in dates[san].keys():
+            filtered = list(filter(lambda d: d != 0, dates[san][his]))
+            target['zdkk_dk_san_bas->' + san + '->' + his + '->anzahl'] = len(dates[san][his])
+            target['zdkk_dk_san_bas->' + san + '->' + his + '->san_datum'] = min(filtered) if len(filtered) > 0 else 0
+
+    for san in betraege.keys():
+        for his in betraege[san].keys():
+            if len(betraege[san][his]) > 0:
+                target['zdkk_dk_san_bas->' + san + '->' + his + '->betrag->summe'] = \
+                    round(sum(betraege[san][his]), 2)
+                target['zdkk_dk_san_bas->' + san + '->' + his + '->betrag->max'] = \
+                    round(max(betraege[san][his]), 2)
+                target['zdkk_dk_san_bas->' + san + '->' + his + '->betrag->durchschnitt'] = \
+                    round(float(sum(betraege[san][his]) / len(betraege[san][his])), 2)
+
+    return target
 
 
-def transform_zdkk_abg_n_cfc(table_rows: list):
-    # TODO
-    pass
+def transform_fkk_sec(sek: list, sek_c=None):
+    target = dict()
 
+    reason = ['sl01', 'sl02', 'sl03', 'sl04', 'sl05', 'sl06', 'sl07',
+              'sl08', 'sl09', 'sl11', 'sl12', 'sl13', 'sl98', 'sl99']
+    rev_reason = ['leer', '0001', '0002', '0003', '0004']
+    columns = ['anzahl',  'request->summe', 'request->max', 'request->durchschnitt']
 
-def transform_fkk_sec(table_rows: list):
-    # TODO
-    pass
+    for grund in reason:
+        for storno in rev_reason:
+            for c in columns:
+                target['fkk_sec->' + grund + '->' + storno + '->' + c] = 0
 
+    if sek_c is None:
+        sek_c = list()
 
-def transform_fkk_sec_c(table_rows: list):
-    # TODO
-    pass
+    if len(sek) == 0 or len(sek_c) == 0:
+        return target
+
+    betraege = dict()
+    for row in sek:
+        row_id = row.find('security').text
+        row_c = list(filter(lambda r: r.find('security').text == row_id, sek_c))
+        if len(row_c) == 1:
+            row_c = row_c[0]
+        else:
+            row_c = None
+
+        grund = row.find('reason').text
+        if grund is not None:
+            grund = grund.lower()
+            storno = row.find('rev_reason').text
+            storno = storno.lower() if storno is not None else 'leer'
+
+            if row_c is not None:
+                betrag = row_c.find('request').text
+                betrag = float(betrag) if betrag is not None else 0.0
+            else:
+                betrag = 0.0
+
+            if grund not in betraege.keys():
+                betraege[grund] = dict()
+            if storno not in betraege[grund].keys():
+                betraege[grund][storno] = list()
+
+            betraege[grund][storno].append(betrag)
+
+    for grund in betraege.keys():
+        for storno in betraege[grund].keys():
+            if len(betraege[grund][storno]) > 0:
+                target['fkk_sec->' + grund + '->' + storno + '->anzahl'] = \
+                    len(betraege[grund][storno])
+                target['fkk_sec->' + grund + '->' + storno + '->request->summe'] = \
+                    round(sum(betraege[grund][storno]), 2)
+                target['fkk_sec->' + grund + '->' + storno + '->request->max'] = \
+                    round(max(betraege[grund][storno]), 2)
+                target['fkk_sec->' + grund + '->' + storno + '->request->durchschnitt'] = \
+                    round(float(sum(betraege[grund][storno]) / len(betraege[grund][storno])), 2)
+
+    summe = 0
+    for key in target.keys():
+        if target[key] > 0:
+            summe += target[key]
+            print(key, ':', target[key])
+
+    if summe > 0:
+        exit(0)
+
+    return target
 
 
 def get_transform_func_for_table_rows(table_name: str):
