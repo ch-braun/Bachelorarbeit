@@ -52,39 +52,57 @@ def save_entity_to_file(entity: dict, output_dir: str, entity_name: str) -> None
     file.close()
 
 
-def preprocess_entities(no_save: bool) -> None:
+def divide_chunks(lst: list, n: int):
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
+
+
+def preprocess_entities(process_count: int) -> None:
     timestamp = datetime.now().strftime("%Y_%m_%d_(%H-%M-%S)")
     current_output_dir = FLATTENED_DIR + timestamp + "/"
-    if not no_save:    
-        Path(current_output_dir).mkdir(parents=True, exist_ok=True)
+    Path(current_output_dir).mkdir(parents=True, exist_ok=True)
 
-    flattened_entities = dict()
-
+    readers = list()
     print("Preprocessing entities...")
-    counter = 0
-    for filename in os.listdir(SPLIT_DIR):
-        if filename.lower().endswith(".xml"):
-            heap = xml_tools.get_heap_node(SPLIT_DIR + filename)
+    files = list(filter(lambda f: f.lower().endswith(".xml"), os.listdir(SPLIT_DIR)))
+    chunks = list(divide_chunks(files, len(files)//process_count))
 
-            flattened = flatten_entity(heap)
-            entity_name = re.sub(r'score.*cb', '', filename.lower()).replace('.xml', '')
-            if not no_save:
+    print(len(chunks), 'chunks')
+    for chunk in chunks:
+        # Erzeugen einer Pipe zur Interprozesskommunikation
+        reader, writer = os.pipe()
+        # Erzeugen des Subprozesses
+        if os.fork():
+            # Hier läuft der Hauptprozess weiter
+            # Pipe-Endpunkt des neuen Subprozesses an Liste anhängen
+            readers.append(reader)
+        else:
+            counter = 0
+            for filename in chunk:
+                heap = xml_tools.get_heap_node(SPLIT_DIR + filename)
+
+                flattened = flatten_entity(heap)
+                entity_name = re.sub(r'score.*cb', '', filename.lower()).replace('.xml', '')
                 save_entity_to_file(entity=flattened, output_dir=current_output_dir, entity_name=entity_name)
-            else:
-                flattened_entities[entity_name] = flattened
 
-            counter += 1
-            breite = 0
-            for key in flattened.keys():
-                breite += len(flattened[key].keys())
+                breite = 0
+                for key in flattened.keys():
+                    breite += len(flattened[key].keys())
+                counter += 1
+                if counter % 100 == 0:
+                    print(str(counter) + " files preprocessed")
 
-            print(counter, filename, "preprocessed", breite)
+            os.write(writer, bytearray('chunk preprocessed', "utf-8"))
 
-    print(flattened_entities)
+    for r in readers:
+        print(os.read(r, 1000).decode())
 
 
 def do_step(args: argparse.Namespace) -> None:
     if args.clear_flattened:
-        shutil.rmtree(FLATTENED_DIR)
+        shutil.rmtree(FLATTENED_DIR, ignore_errors=True)
 
-    preprocess_entities(args.no_save)
+    if args.process_count is None or args.process_count == 0:
+        args.process_count = 1
+
+    preprocess_entities(args.process_count)
