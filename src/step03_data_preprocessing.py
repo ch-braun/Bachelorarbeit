@@ -5,6 +5,7 @@ import os
 import re
 import xml.etree.ElementTree as elemTree
 from pathlib import Path
+from filelock import FileLock
 
 from step01_data_collection import DATA_DIR, SPLIT_DIR
 from util import transformator
@@ -52,6 +53,20 @@ def save_entity_to_file(entity: dict, output_dir: str, entity_name: str) -> None
     file.close()
 
 
+def save_values_to_files(entity: dict, value_output_dir: str) -> None:
+    for key_tab in entity.keys():
+        for key_attr in entity[key_tab].keys():
+            filename = value_output_dir + key_attr + '.csv'
+            lock_filename = value_output_dir + key_attr + '.csv.lock'
+
+            lock = FileLock(lock_filename, timeout=10)
+            lock.acquire()
+            try:
+                open(filename, "a", encoding="utf-8").write(str(entity[key_tab][key_attr]) + '\n')
+            finally:
+                lock.release()
+
+
 def divide_chunks(lst: list, n: int):
     for i in range(0, len(lst), n):
         yield lst[i:i + n]
@@ -59,8 +74,10 @@ def divide_chunks(lst: list, n: int):
 
 def preprocess_entities(process_count: int) -> None:
     timestamp = datetime.now().strftime("%Y_%m_%d_(%H-%M-%S)")
-    current_output_dir = FLATTENED_DIR + timestamp + "/"
-    Path(current_output_dir).mkdir(parents=True, exist_ok=True)
+    current_file_output_dir = FLATTENED_DIR + timestamp + "/"
+    current_value_output_dir = current_file_output_dir + "values/"
+    Path(current_file_output_dir).mkdir(parents=True, exist_ok=True)
+    Path(current_value_output_dir).mkdir(parents=True, exist_ok=True)
 
     readers = list()
     print("Preprocessing entities...")
@@ -71,6 +88,9 @@ def preprocess_entities(process_count: int) -> None:
     for chunk in chunks:
         # Erzeugen einer Pipe zur Interprozesskommunikation
         reader, writer = os.pipe()
+
+        print('Starting new chunk...')
+
         # Erzeugen des Subprozesses
         if os.fork():
             # Hier läuft der Hauptprozess weiter
@@ -83,16 +103,16 @@ def preprocess_entities(process_count: int) -> None:
 
                 flattened = flatten_entity(heap)
                 entity_name = re.sub(r'score.*cb', '', filename.lower()).replace('.xml', '')
-                save_entity_to_file(entity=flattened, output_dir=current_output_dir, entity_name=entity_name)
+                save_entity_to_file(entity=flattened, output_dir=current_file_output_dir, entity_name=entity_name)
+                save_values_to_files(entity=flattened, value_output_dir=current_value_output_dir)
 
                 breite = 0
                 for key in flattened.keys():
                     breite += len(flattened[key].keys())
                 counter += 1
-                if counter % 100 == 0:
-                    print(str(counter) + " files preprocessed")
 
             os.write(writer, bytearray('chunk preprocessed', "utf-8"))
+            exit(0)
 
     for r in readers:
         print(os.read(r, 1000).decode())
