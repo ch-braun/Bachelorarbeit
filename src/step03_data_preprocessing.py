@@ -155,7 +155,7 @@ def calculate_averages(process_count: int):
         print(key, variances[key])
 
     zero_var = list(filter(lambda v: v == 0.0, variances.values()))
-    nonzero_var = list(filter(lambda v: v == 0.0, variances.values()))
+    nonzero_var = list(filter(lambda v: v > 0.0, variances.values()))
     print('Attributes having exactly 0.0 variance:', len(zero_var))
     print('Attributes having more than 0.0 variance:', len(nonzero_var))
 
