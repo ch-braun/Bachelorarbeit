@@ -15,6 +15,7 @@ def parse_args():
     parser.add_argument('--skip-stats', help='Skip creation of statistics', action='store_true')
     parser.add_argument('--skip-steps', help='Skip given steps (1 - 6)', nargs='+', metavar='N', type=int)
     parser.add_argument('--clear-flattened', help='Clear flattened directory', action='store_true')
+    parser.add_argument('--skip-flattening', help='Skip flattening process', action='store_true')
     parser.add_argument('--process-count', help='Specify the number of subprocesses', nargs='?', metavar='P', type=int)
 
     return parser.parse_args()

@@ -10,6 +10,7 @@ from filelock import FileLock
 from step01_data_collection import DATA_DIR, SPLIT_DIR
 from util import transformator
 from util import xml_tools
+import numpy as np
 
 FLATTENED_DIR = DATA_DIR + "flattened/"
 
@@ -124,6 +125,41 @@ def preprocess_entities(process_count: int) -> None:
             continue
 
 
+def calculate_averages(process_count: int):
+    print('Calculating averages...')
+    if len(os.listdir(FLATTENED_DIR)) == 0:
+        return
+
+    path = FLATTENED_DIR + max(os.listdir(FLATTENED_DIR)) + "/values/"
+
+    print('Selecting', path)
+
+    files = list(filter(lambda f: f.lower().endswith(".csv"), os.listdir(path)))
+
+    variances = dict()
+
+    for filename in files:
+        print('Calculating', filename.lower().replace('.csv', ''))
+        file = open(path + filename, "r")
+        values = np.asarray([abs(float(line.rstrip('\n'))) for line in file])
+        if max(values) != 0 and max(values) != min(values):
+            normed = (values - min(values))/(max(values)-min(values))
+        else:
+            normed = values
+
+        variances[filename.lower().replace('.csv', '')] = np.var(normed)
+
+    variances = {k: v for k, v in sorted(variances.items(), key=lambda item: item[1])}
+
+    for key in variances:
+        print(key, variances[key])
+
+    zero_var = list(filter(lambda v: v == 0.0, variances.values()))
+    nonzero_var = list(filter(lambda v: v == 0.0, variances.values()))
+    print('Attributes having exactly 0.0 variance:', len(zero_var))
+    print('Attributes having more than 0.0 variance:', len(nonzero_var))
+
+
 def do_step(args: argparse.Namespace) -> None:
     if args.clear_flattened:
         shutil.rmtree(FLATTENED_DIR, ignore_errors=True)
@@ -131,4 +167,7 @@ def do_step(args: argparse.Namespace) -> None:
     if args.process_count is None or args.process_count == 0:
         args.process_count = 1
 
-    preprocess_entities(args.process_count)
+    if not args.skip_flattening:
+        preprocess_entities(args.process_count)
+
+    calculate_averages(args.process_count)
