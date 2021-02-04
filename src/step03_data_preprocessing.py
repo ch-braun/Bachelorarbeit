@@ -201,14 +201,15 @@ def normalize_entites(process_count: int):
                     line = line.rstrip('\n')
                     if line is not None and line != '':
                         split = line.split(';', 1)
-                        minimum = MIN[split[0]]
-                        maximum = MAX[split[0]]
-                        value = abs(float(split[1]))
-                        if maximum != 0 and maximum != minimum:
-                            normed = (value - minimum)/(maximum-minimum)
-                        else:
-                            normed = value
-                        new_file.write(split[0] + ";" + str(normed) + "\n")
+                        if VAR[split[0]] != 0:
+                            minimum = MIN[split[0]]
+                            maximum = MAX[split[0]]
+                            value = abs(float(split[1]))
+                            if maximum != 0 and maximum != minimum:
+                                normed = (value - minimum)/(maximum-minimum)
+                            else:
+                                normed = value
+                            new_file.write(split[0] + ";" + str(normed) + "\n")
                 file.close()
                 new_file.close()
 
