@@ -13,6 +13,10 @@ from util import xml_tools
 import numpy as np
 
 FLATTENED_DIR = DATA_DIR + "flattened/"
+NORMED_DIR = DATA_DIR + "normed/"
+VAR = dict()
+MIN = dict()
+MAX = dict()
 
 
 def flatten_entity(entity_heap: elemTree.Element) -> dict:
@@ -73,7 +77,7 @@ def divide_chunks(lst: list, n: int):
         yield lst[i:i + n]
 
 
-def preprocess_entities(process_count: int) -> None:
+def flatten_all_entities(process_count: int) -> None:
     timestamp = datetime.now().strftime("%Y_%m_%d_(%H-%M-%S)")
     current_file_output_dir = FLATTENED_DIR + timestamp + "/"
     current_value_output_dir = current_file_output_dir + "values/"
@@ -81,7 +85,7 @@ def preprocess_entities(process_count: int) -> None:
     Path(current_value_output_dir).mkdir(parents=True, exist_ok=True)
 
     readers = list()
-    print("Preprocessing entities...")
+    print("Flattening entities...")
     files = list(filter(lambda f: f.lower().endswith(".xml"), os.listdir(SPLIT_DIR)))
     chunks = list(divide_chunks(files, len(files)//process_count))
 
@@ -112,7 +116,7 @@ def preprocess_entities(process_count: int) -> None:
                     breite += len(flattened[key].keys())
                 counter += 1
 
-            os.write(writer, bytearray('chunk preprocessed', "utf-8"))
+            os.write(writer, bytearray('chunk flattened', "utf-8"))
             exit(0)
 
     for r in readers:
@@ -125,8 +129,8 @@ def preprocess_entities(process_count: int) -> None:
             continue
 
 
-def calculate_averages(process_count: int):
-    print('Calculating averages...')
+def calculate_variances_and_extrema():
+    print('Calculating variances...')
     if len(os.listdir(FLATTENED_DIR)) == 0:
         return
 
@@ -135,9 +139,9 @@ def calculate_averages(process_count: int):
     print('Selecting', path)
 
     files = list(filter(lambda f: f.lower().endswith(".csv"), os.listdir(path)))
-
     variances = dict()
-
+    minima = dict()
+    maxima = dict()
     for filename in files:
         print('Calculating', filename.lower().replace('.csv', ''))
         file = open(path + filename, "r")
@@ -148,16 +152,71 @@ def calculate_averages(process_count: int):
             normed = values
 
         variances[filename.lower().replace('.csv', '')] = np.var(normed)
+        minima[filename.lower().replace('.csv', '')] = min(values)
+        maxima[filename.lower().replace('.csv', '')] = max(values)
 
     variances = {k: v for k, v in sorted(variances.items(), key=lambda item: item[1])}
+    globals()['VAR'] = variances.copy()
+    globals()['MIN'] = minima.copy()
+    globals()['MAX'] = maxima.copy()
 
-    for key in variances:
-        print(key, variances[key])
+    for key in globals()['VAR']:
+        print(key, globals()['VAR'][key])
 
     zero_var = list(filter(lambda v: v == 0.0, variances.values()))
     nonzero_var = list(filter(lambda v: v > 0.0, variances.values()))
     print('Attributes having exactly 0.0 variance:', len(zero_var))
     print('Attributes having more than 0.0 variance:', len(nonzero_var))
+
+
+def normalize_entites(process_count: int):
+    timestamp = datetime.now().strftime("%Y_%m_%d_(%H-%M-%S)")
+    current_file_output_dir = NORMED_DIR + timestamp + "/"
+    Path(current_file_output_dir).mkdir(parents=True, exist_ok=True)
+
+    readers = list()
+    print("Normalizing entities...")
+    path = FLATTENED_DIR + max(os.listdir(FLATTENED_DIR)) + "/"
+    files = list(filter(lambda f: f.lower().endswith(".csv"), os.listdir(path)))
+
+    chunks = list(divide_chunks(files, len(files)//process_count))
+    print(len(chunks), 'chunks')
+
+    for chunk in chunks:
+        # Erzeugen einer Pipe zur Interprozesskommunikation
+        reader, writer = os.pipe()
+
+        print('Starting new chunk...')
+
+        # Erzeugen des Subprozesses
+        if os.fork():
+            # Hier läuft der Hauptprozess weiter
+            # Pipe-Endpunkt des neuen Subprozesses an Liste anhängen
+            readers.append(reader)
+        else:
+            for filename in chunk:
+                file = open(path + filename, "r")
+                new_file = open(current_file_output_dir + filename.lower(), "w", encoding="utf-8")
+                for line in file:
+                    line = line.rstrip('\n')
+                    if line is not None and line != '':
+                        split = line.split(';', 1)
+                        minimum = MIN[split[0]]
+                        maximum = MAX[split[0]]
+                        value = abs(float(split[1]))
+                        if maximum != 0 and maximum != minimum:
+                            normed = (value - minimum)/(maximum-minimum)
+                        else:
+                            normed = value
+                        new_file.write(split[0] + ";" + str(normed) + "\n")
+                file.close()
+                new_file.close()
+
+            os.write(writer, bytearray('chunk normalized', "utf-8"))
+            exit(0)
+
+    for r in readers:
+        print(os.read(r, 1000).decode())
 
 
 def do_step(args: argparse.Namespace) -> None:
@@ -168,6 +227,8 @@ def do_step(args: argparse.Namespace) -> None:
         args.process_count = 1
 
     if not args.skip_flattening:
-        preprocess_entities(args.process_count)
+        flatten_all_entities(args.process_count)
 
-    calculate_averages(args.process_count)
+    calculate_variances_and_extrema()
+
+    normalize_entites(args.process_count)
