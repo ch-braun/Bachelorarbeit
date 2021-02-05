@@ -1,4 +1,5 @@
 import argparse
+import math
 import shutil
 from datetime import datetime
 import os
@@ -8,12 +9,14 @@ from pathlib import Path
 from filelock import FileLock
 
 from step01_data_collection import DATA_DIR, SPLIT_DIR
+from step02_data_analysis import STAT_DIR
 from util import transformator
 from util import xml_tools
 import numpy as np
 
 FLATTENED_DIR = DATA_DIR + "flattened/"
 NORMED_DIR = DATA_DIR + "normed/"
+INDEPENDENT_DIR = DATA_DIR + "independent/"
 VAR = dict()
 MIN = dict()
 MAX = dict()
@@ -87,7 +90,7 @@ def flatten_all_entities(process_count: int) -> None:
     readers = list()
     print("Flattening entities...")
     files = list(filter(lambda f: f.lower().endswith(".xml"), os.listdir(SPLIT_DIR)))
-    chunks = list(divide_chunks(files, len(files)//process_count))
+    chunks = list(divide_chunks(files, len(files) // process_count))
 
     print(len(chunks), 'chunks')
     for chunk in chunks:
@@ -147,7 +150,7 @@ def calculate_variances_and_extrema():
         file = open(path + filename, "r")
         values = np.asarray([abs(float(line.rstrip('\n'))) for line in file])
         if max(values) != 0 and max(values) != min(values):
-            normed = (values - min(values))/(max(values)-min(values))
+            normed = (values - min(values)) / (max(values) - min(values))
         else:
             normed = values
 
@@ -179,7 +182,7 @@ def normalize_entites(process_count: int):
     path = FLATTENED_DIR + max(os.listdir(FLATTENED_DIR)) + "/"
     files = list(filter(lambda f: f.lower().endswith(".csv"), os.listdir(path)))
 
-    chunks = list(divide_chunks(files, len(files)//process_count))
+    chunks = list(divide_chunks(files, len(files) // process_count))
     print(len(chunks), 'chunks')
 
     for chunk in chunks:
@@ -206,7 +209,7 @@ def normalize_entites(process_count: int):
                             maximum = MAX[split[0]]
                             value = abs(float(split[1]))
                             if maximum != 0 and maximum != minimum:
-                                normed = (value - minimum)/(maximum-minimum)
+                                normed = (value - minimum) / (maximum - minimum)
                             else:
                                 normed = value
                             new_file.write(split[0] + ";" + str(normed) + "\n")
@@ -214,6 +217,167 @@ def normalize_entites(process_count: int):
                 new_file.close()
 
             os.write(writer, bytearray('chunk normalized', "utf-8"))
+            exit(0)
+
+    for r in readers:
+        print(os.read(r, 1000).decode())
+
+
+def write_buffer_to_file(filename: str, lines: list):
+    lock_filename = filename + '.lock'
+
+    lock = FileLock(lock_filename, timeout=10)
+    lock.acquire()
+    try:
+        out = open(filename, "a", encoding="utf-8")
+        for line in lines:
+            out.write(line + '\n')
+    finally:
+        lock.release()
+
+
+def check_stat_independence(process_count: int):
+    entities = list()
+    path = NORMED_DIR + max(os.listdir(NORMED_DIR)) + "/"
+    files = list(filter(lambda f: f.lower().endswith(".csv"), os.listdir(path)))
+    output_filename = STAT_DIR + "correlation_" + datetime.now().strftime("%Y_%m_%d_(%H-%M-%S)") + ".csv"
+
+    print('Checking statistical independence for all attributes')
+
+    for filename in files:
+        file = open(path + filename, "r")
+        new_entity = dict()
+        for line in file:
+            line = line.rstrip('\n').split(';', 1)
+            new_entity[line[0]] = float(line[1])
+        entities.append(new_entity)
+
+    combinations = math.comb(len(entities[0].keys()), 2)
+    print('Combinations to check for independence:', combinations)
+
+    attributes = list(entities[0].keys()).copy()
+    cross_table = list()
+    done = list()
+    for a in attributes:
+        for b in attributes:
+            if a != b and b not in done:
+                cross_table.append([a, b])
+        done.append(a)
+
+    print('Cross Table size: ', len(cross_table))
+
+    chunks = divide_chunks(cross_table, len(cross_table) // process_count)
+    readers = list()
+    for chunk in chunks:
+        # Erzeugen einer Pipe zur Interprozesskommunikation
+        reader, writer = os.pipe()
+
+        print('Starting new chunk...')
+
+        # Erzeugen des Subprozesses
+        if os.fork():
+            # Hier läuft der Hauptprozess weiter
+            # Pipe-Endpunkt des neuen Subprozesses an Liste anhängen
+            readers.append(reader)
+        else:
+            buffer_array = list()
+            for pair in chunk:
+                values_a = list(map(lambda e: e[pair[0]], entities))
+                values_b = list(map(lambda e: e[pair[1]], entities))
+                std_a = np.std(values_a)
+                std_b = np.std(values_b)
+                mean_a = np.mean(values_a)
+                mean_b = np.mean(values_b)
+                n = len(values_a)
+                accumulated_sum = 0.0
+                for i in range(0, n):
+                    accumulated_sum += (values_a[i] - mean_a) * (values_b[i] - mean_b)
+
+                corr_coeff = accumulated_sum / (n * std_a * std_b)
+
+                buffer_array.append(pair[0] + ";" + pair[1] + ";" + str(corr_coeff))
+
+                if len(buffer_array) > 100:
+                    write_buffer_to_file(output_filename, buffer_array)
+                    buffer_array = list()
+
+            write_buffer_to_file(output_filename, buffer_array)
+            os.write(writer, bytearray('chunk checked', "utf-8"))
+            exit(0)
+
+    for r in readers:
+        print(os.read(r, 1000).decode())
+
+    try:
+        os.remove(output_filename + ".lock")
+    except FileNotFoundError:
+        pass
+
+
+def eliminate_dependent_attributes(process_count: int, crit_val=0.01):
+    # crit_val = 0.114 --> alpha = 0.01, n = infinite
+    files = list(filter(lambda f: f.lower().startswith('correlation_'), os.listdir(STAT_DIR)))
+    if len(files) == 0:
+        return
+
+    output_path = INDEPENDENT_DIR + datetime.now().strftime("%Y_%m_%d_(%H-%M-%S)") + "/"
+    Path(output_path).mkdir(parents=True, exist_ok=True)
+
+    file = open(STAT_DIR + max(files), "r")
+    lines = list(map(lambda l: l.rstrip('\n').split(';'), file.readlines()))
+    lines = [[line[0], line[1], round(float(line[2]), 8)] for line in lines]
+    lines = sorted(lines, key=lambda l: float(l[2]), reverse=True)
+
+    print('Perfectly positively correlated pairs:', len(list(filter(lambda l: l[2] == 1.0, lines))))
+    print('Perfectly negatively correlated pairs:', len(list(filter(lambda l: l[2] == -1.0, lines))))
+    print('Perfectly uncorrelated pairs:', len(list(filter(lambda l: l[2] == 0.0, lines))))
+    print('Uncorrelated pairs by critical value of ' + str(crit_val) + ':',
+          len(list(filter(lambda l: abs(l[2]) <= crit_val, lines))))
+    print('Correlated pairs by critical value of ' + str(crit_val) + ':',
+          len(list(filter(lambda l: abs(l[2]) > crit_val, lines))))
+
+    attributes = list(map(lambda l: l[0], lines))
+    attributes += list(map(lambda l: l[1], lines))
+    attributes = list(dict.fromkeys(attributes))
+
+    for a, b, value in lines:
+        if abs(value) > crit_val:
+            attributes = list(map(lambda l: l if l != b else a, attributes))
+
+    attributes = list(dict.fromkeys(attributes))
+    print('Uncorrelated attributes by critical value of ' + str(crit_val) + ':', len(attributes))
+
+    files = list(filter(lambda f: f.lower().endswith('.csv'), os.listdir(NORMED_DIR + max(os.listdir(NORMED_DIR)))))
+    chunks = divide_chunks(files, len(files) // process_count)
+    readers = list()
+
+    for chunk in chunks:
+        # Erzeugen einer Pipe zur Interprozesskommunikation
+        reader, writer = os.pipe()
+
+        print('Starting new chunk...')
+
+        # Erzeugen des Subprozesses
+        if os.fork():
+            # Hier läuft der Hauptprozess weiter
+            # Pipe-Endpunkt des neuen Subprozesses an Liste anhängen
+            readers.append(reader)
+        else:
+            for filename in chunk:
+                input_file = open(NORMED_DIR + max(os.listdir(NORMED_DIR)) + "/" + filename, "r")
+                output_file = open(output_path + filename, "w")
+
+                for line in input_file:
+                    line = line.rstrip('\n')
+                    split = line.split(';')
+                    if len(split) == 2:
+                        if split[0] in attributes:
+                            output_file.write(line + '\n')
+
+                input_file.close()
+                output_file.close()
+
+            os.write(writer, bytearray('chunk reduced to indepent attributes', "utf-8"))
             exit(0)
 
     for r in readers:
@@ -230,6 +394,14 @@ def do_step(args: argparse.Namespace) -> None:
     if not args.skip_flattening:
         flatten_all_entities(args.process_count)
 
-    calculate_variances_and_extrema()
+    if not args.skip_norm:
+        calculate_variances_and_extrema()
+        normalize_entites(args.process_count)
 
-    normalize_entites(args.process_count)
+    if not args.skip_independence_check:
+        check_stat_independence(args.process_count)
+
+    if args.crit_val is not None and args.crit_val > 0:
+        eliminate_dependent_attributes(process_count=args.process_count, crit_val=args.crit_val)
+    else:
+        eliminate_dependent_attributes(process_count=args.process_count)

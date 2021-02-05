@@ -50,7 +50,8 @@ def clean_scores() -> None:
                 filtered_rows = list()
                 for row in table_rows:
                     if row.tag == 'zdkk_rb_scores':
-                        filtered_rows.append(row)
+                        if row.find('score1').text is not None and int(row.find('score1').text) < 10:
+                            filtered_rows.append(row)
 
                 print(counter, filename, len(filtered_rows))
                 if len(filtered_rows) == 1:
