@@ -205,7 +205,7 @@ def calculate_models():
     rare_output_file = STAT_DIR + "models_rare_" + timestamp + '.csv'
     rare_output_file = open(rare_output_file, "w", encoding="utf-8")
     rare_output_file.write('neurons;loss;accuracy;recall;precision\n')
-    for r in results:
+    for r in rare_results:
         rare_output_file.write(";".join(list(map(str, r))) + "\n")
     rare_output_file.close()
 
