@@ -86,12 +86,22 @@ def split_data():
 
         label_vect[label] = 1
         if counts[label] > 0:
-            globals()['VALIDATION_DATA'].append(entity)
-            globals()['VALIDATION_LABELS'].append(label)
+            if 1 < int(label) < 9:
+                for x in range(0, 10):
+                    globals()['VALIDATION_DATA'].append(entity)
+                    globals()['VALIDATION_LABELS'].append(label)
+            else:
+                globals()['VALIDATION_DATA'].append(entity)
+                globals()['VALIDATION_LABELS'].append(label)
             counts[label] -= 1
         else:
-            globals()['TRAINING_DATA'].append(entity)
-            globals()['TRAINING_LABELS'].append(label)
+            if 1 < int(label) < 9:
+                for x in range(0, 10):
+                    globals()['TRAINING_DATA'].append(entity)
+                    globals()['TRAINING_LABELS'].append(label)
+            else:
+                globals()['TRAINING_DATA'].append(entity)
+                globals()['TRAINING_LABELS'].append(label)
 
     globals()['TRAINING_DATA'] = np.asarray(globals()['TRAINING_DATA'])
     globals()['TRAINING_LABELS'] = np.asarray(globals()['TRAINING_LABELS'])
@@ -126,7 +136,7 @@ def create_neural_network(hidden_neurons: int) -> Model:
 def train_model(model: Model):
     model.compile(optimizer='rmsprop',
                   loss='mean_squared_error',
-                  metrics=[metrics.BinaryAccuracy(), metrics.Recall(), metrics.Precision()])
+                  metrics=[metrics.CategoricalAccuracy(), metrics.Recall(), metrics.Precision()])
 
     y_train = to_categorical(globals()['TRAINING_LABELS'])
     print(y_train.shape)
@@ -142,7 +152,7 @@ def validate_model(model: Model) -> [float, float, float, float]:
     loss, acc, recall, precision = model.evaluate(x=globals()['VALIDATION_DATA'], y=y_validate, batch_size=32)
 
     print("loss: %.4f" % loss)
-    print("binary accuracy: %.4f" % acc)
+    print("categorical accuracy: %.4f" % acc)
     print("recall: %.4f" % recall)
     print("precision: %.4f" % precision)
 
@@ -166,7 +176,7 @@ def validate_model_for_rare_classes(model: Model) -> [float, float, float, float
     loss, acc, recall, precision = model.evaluate(x=rare_entities, y=y_validate, batch_size=32)
 
     print("loss: %.4f" % loss)
-    print("binary accuracy: %.4f" % acc)
+    print("categorical accuracy: %.4f" % acc)
     print("recall: %.4f" % recall)
     print("precision: %.4f" % precision)
 
@@ -186,6 +196,8 @@ def calculate_models():
     rare_results = list()
     min_value = to_categorical(globals()['VALIDATION_LABELS']).shape[1]
     max_value = len(globals()['DATA'][0])+1
+    max_value = 20
+
     for x in range(min_value, max_value):
         print("Training NN for " + str(x) + " hidden neurons...")
         clear_session()
