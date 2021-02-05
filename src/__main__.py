@@ -19,9 +19,14 @@ def parse_args():
     parser.add_argument('--skip-norm', help='Skip normalization process', action='store_true')
     parser.add_argument('--skip-independence-check', help='Skip normalization process', action='store_true')
     parser.add_argument('--crit-val', help='Critical value for corr. significance', nargs='?', metavar='a', type=float)
+    parser.add_argument('--skip-classification', help='Skip classification', action='store_true')
     parser.add_argument('--process-count', help='Specify the number of subprocesses', nargs='?', metavar='P', type=int)
 
-    return parser.parse_args()
+    args = parser.parse_args()
+
+    if args.process_count is None or args.process_count == 0:
+        args.process_count = 1
+    return args
 
 
 def run_data_mining() -> None:

@@ -388,9 +388,6 @@ def do_step(args: argparse.Namespace) -> None:
     if args.clear_flattened:
         shutil.rmtree(FLATTENED_DIR, ignore_errors=True)
 
-    if args.process_count is None or args.process_count == 0:
-        args.process_count = 1
-
     if not args.skip_flattening:
         flatten_all_entities(args.process_count)
 
