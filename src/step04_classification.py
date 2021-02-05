@@ -1,13 +1,20 @@
 import argparse
 import os
 import random
+from datetime import datetime
+from pathlib import Path
 
 import numpy as np
+from tensorflow import metrics
 from tensorflow.keras import layers
 from tensorflow.python.keras import Model, activations
+from tensorflow.python.keras.backend import clear_session
 from tensorflow.python.keras.utils.np_utils import to_categorical
 
+from step01_data_collection import STAT_DIR, DATA_DIR
 from step03_data_preprocessing import INDEPENDENT_DIR
+
+MODEL_DIR = DATA_DIR + "models/"
 
 DATA = list()
 LABELS = list()
@@ -118,12 +125,58 @@ def create_neural_network(hidden_neurons: int) -> Model:
 
 def train_model(model: Model):
     model.compile(optimizer='rmsprop',
-                  loss='mean_squared_error')
+                  loss='mean_squared_error',
+                  metrics=[metrics.BinaryAccuracy(), metrics.Recall(), metrics.Precision()])
 
-    print(globals()['TRAINING_LABELS'][:100])
-    y_train = to_categorical(globals()['TRAINING_LABELS']-1)
+    y_train = to_categorical(globals()['TRAINING_LABELS'])
     print(y_train.shape)
-    model.fit(globals()['TRAINING_DATA'], y_train, batch_size=32, epochs=10)
+
+    history = model.fit(x=globals()['TRAINING_DATA'], y=y_train, batch_size=32, epochs=10)
+    print(history.history)
+
+
+def validate_model(model: Model) -> [float, float, float, float]:
+    y_validate = to_categorical(globals()['VALIDATION_LABELS'])
+    print(y_validate.shape)
+
+    loss, acc, recall, precision = model.evaluate(x=globals()['VALIDATION_DATA'], y=y_validate, batch_size=32)
+    # print("Results:", results)
+    print("loss: %.4f" % loss)
+    print("binary accuracy: %.4f" % acc)
+    print("recall: %.4f" % recall)
+    print("precision: %.4f" % precision)
+
+    return [loss, acc, recall, precision]
+    # predictions = model.predict(x=globals()['VALIDATION_DATA'], batch_size=32)
+    # print(predictions.shape)
+
+
+def calculate_models():
+    Path(STAT_DIR).mkdir(parents=True, exist_ok=True)
+    Path(MODEL_DIR).mkdir(parents=True, exist_ok=True)
+
+    timestamp = datetime.now().strftime("%Y_%m_%d_(%H-%M-%S)")
+
+    model_folder = MODEL_DIR + timestamp + '/'
+    Path(model_folder).mkdir(parents=True, exist_ok=True)
+
+    results = list()
+    min_value = to_categorical(globals()['VALIDATION_LABELS']).shape[1]
+    max_value = len(globals()['DATA'][0])+1
+    for x in range(min_value, max_value):
+        print("Training NN for " + str(x) + " hidden neurons...")
+        clear_session()
+        model = create_neural_network(x)
+        train_model(model)
+        model.save(model_folder + "model_" + str(x))
+        results.append([x] + validate_model(model))
+
+    output_file = STAT_DIR + "models_" + timestamp + '.csv'
+    output_file = open(output_file, "w", encoding="utf-8")
+    output_file.write('neurons;loss;accuracy;recall;precision\n')
+    for r in results:
+        output_file.write(";".join(list(map(str, r))) + "\n")
+    output_file.close()
 
 
 # 42 Neuronen im Hidden Layer
@@ -131,5 +184,4 @@ def do_step(args: argparse.Namespace) -> None:
     if not args.skip_classification:
         load_data()
         split_data()
-        train_model(create_neural_network(42))
-
+        calculate_models()
