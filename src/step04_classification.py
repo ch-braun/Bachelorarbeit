@@ -140,15 +140,37 @@ def validate_model(model: Model) -> [float, float, float, float]:
     print(y_validate.shape)
 
     loss, acc, recall, precision = model.evaluate(x=globals()['VALIDATION_DATA'], y=y_validate, batch_size=32)
-    # print("Results:", results)
+
     print("loss: %.4f" % loss)
     print("binary accuracy: %.4f" % acc)
     print("recall: %.4f" % recall)
     print("precision: %.4f" % precision)
 
     return [loss, acc, recall, precision]
-    # predictions = model.predict(x=globals()['VALIDATION_DATA'], batch_size=32)
-    # print(predictions.shape)
+
+
+def validate_model_for_rare_classes(model: Model) -> [float, float, float, float]:
+    rare_labels = list()
+    rare_entities = list()
+    for i in range(0, len(globals()['VALIDATION_LABELS'])):
+        if int(globals()['VALIDATION_LABELS'][i]) > 1:
+            rare_labels.append(globals()['VALIDATION_LABELS'][i])
+            rare_entities.append(globals()['VALIDATION_DATA'][i])
+
+    rare_labels = np.asarray(rare_labels)
+    rare_entities = np.asarray(rare_entities)
+
+    y_validate = to_categorical(rare_labels)
+    print(y_validate.shape)
+
+    loss, acc, recall, precision = model.evaluate(x=rare_entities, y=y_validate, batch_size=32)
+
+    print("loss: %.4f" % loss)
+    print("binary accuracy: %.4f" % acc)
+    print("recall: %.4f" % recall)
+    print("precision: %.4f" % precision)
+
+    return [loss, acc, recall, precision]
 
 
 def calculate_models():
@@ -161,6 +183,7 @@ def calculate_models():
     Path(model_folder).mkdir(parents=True, exist_ok=True)
 
     results = list()
+    rare_results = list()
     min_value = to_categorical(globals()['VALIDATION_LABELS']).shape[1]
     max_value = len(globals()['DATA'][0])+1
     for x in range(min_value, max_value):
@@ -170,6 +193,7 @@ def calculate_models():
         train_model(model)
         model.save(model_folder + "model_" + str(x))
         results.append([x] + validate_model(model))
+        rare_results.append([x] + validate_model_for_rare_classes(model))
 
     output_file = STAT_DIR + "models_" + timestamp + '.csv'
     output_file = open(output_file, "w", encoding="utf-8")
@@ -177,6 +201,13 @@ def calculate_models():
     for r in results:
         output_file.write(";".join(list(map(str, r))) + "\n")
     output_file.close()
+
+    rare_output_file = STAT_DIR + "models_rare_" + timestamp + '.csv'
+    rare_output_file = open(rare_output_file, "w", encoding="utf-8")
+    rare_output_file.write('neurons;loss;accuracy;recall;precision\n')
+    for r in results:
+        rare_output_file.write(";".join(list(map(str, r))) + "\n")
+    rare_output_file.close()
 
 
 # 42 Neuronen im Hidden Layer
