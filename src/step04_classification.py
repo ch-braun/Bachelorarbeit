@@ -196,7 +196,6 @@ def calculate_models():
     rare_results = list()
     min_value = to_categorical(globals()['VALIDATION_LABELS']).shape[1]
     max_value = len(globals()['DATA'][0])+1
-    max_value = 20
 
     for x in range(min_value, max_value):
         print("Training NN for " + str(x) + " hidden neurons...")
