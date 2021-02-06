@@ -214,7 +214,7 @@ def calculate_models():
         history = train_model(model)
         model.save(model_folder + "model_" + str(x))
 
-        plot_history(history, path=model_folder + "model_" + str(x) + "/history.png")
+        plot_history(history, path=model_folder + "model_" + str(x) + "/history.png", graphs_per_row=2)
         pyplot.close()
 
         plot_model(
