@@ -227,7 +227,7 @@ def calculate_models():
     plot_model(
         model,
         to_file=model_folder + "/model.png",
-        show_shapes=False,
+        show_shapes=True,
         show_dtype=False,
         show_layer_names=True,
         rankdir="TB",
