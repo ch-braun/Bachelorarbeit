@@ -217,23 +217,23 @@ def calculate_models():
         plot_history(history, path=model_folder + "model_" + str(x) + "/history.png")
         pyplot.close()
 
+        plot_model(
+            model,
+            to_file=model_folder + "model_" + str(x) + "/model.png",
+            show_shapes=True,
+            show_dtype=False,
+            show_layer_names=True,
+            rankdir="TB",
+            expand_nested=False,
+            dpi=100,
+        )
+
         results.append([x] + validate_model(model))
         temp = validate_model_for_rare_classes(model)
         to_append = [x]
         for key in sorted(temp.keys()):
             to_append += temp[key]
         rare_results.append(to_append)
-
-    plot_model(
-        model,
-        to_file=model_folder + "/model.png",
-        show_shapes=True,
-        show_dtype=False,
-        show_layer_names=True,
-        rankdir="TB",
-        expand_nested=False,
-        dpi=100,
-    )
 
     output_file = STAT_DIR + "models_" + timestamp + '.csv'
     output_file = open(output_file, "w", encoding="utf-8")
