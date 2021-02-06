@@ -19,7 +19,7 @@ def parse_args():
     parser.add_argument('--skip-norm', help='Skip normalization process', action='store_true')
     parser.add_argument('--skip-independence-check', help='Skip normalization process', action='store_true')
     parser.add_argument('--crit-val', help='Critical value for corr. significance', nargs='?', metavar='a', type=float)
-    parser.add_argument('--oversample', help='Oversampling factor', nargs='?', metavar='o', type=float)
+    parser.add_argument('--oversample', help='Oversampling factor', nargs='?', metavar='o', type=int)
     parser.add_argument('--skip-classification', help='Skip classification', action='store_true')
     parser.add_argument('--process-count', help='Specify the number of subprocesses', nargs='?', metavar='P', type=int)
 
