@@ -1,8 +1,8 @@
 version: "3.9"
 services:
   tensor:
-    image: tensorflow/tensorflow
+    build: .
     volumes:
-      - ./src:/home/code
+      - ./src:/home/src
       - ./data:/home/data
-    command: bash -c "cd /home && python ./code/${PYTHON_ENTRYPOINT}"
+    command: bash -c "cd /home && python ./src/${PYTHON_ENTRYPOINT}"
