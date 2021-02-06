@@ -221,10 +221,10 @@ def calculate_models():
             model,
             to_file=model_folder + "model_" + str(x) + "/model.png",
             show_shapes=True,
-            show_dtype=False,
+            show_dtype=True,
             show_layer_names=True,
             rankdir="TB",
-            expand_nested=False,
+            expand_nested=True,
             dpi=100,
         )
 
