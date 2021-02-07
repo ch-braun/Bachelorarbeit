@@ -136,7 +136,7 @@ def create_neural_network(hidden_neurons: int) -> Model:
     return model
 
 
-def train_model(model: Model) -> dict:
+def train_model(model: Model, epochs: int) -> dict:
     model.compile(optimizer='adam',
                   loss='mean_squared_error',
                   metrics=[metrics.CategoricalAccuracy(), metrics.Recall(), metrics.Precision()])
@@ -145,7 +145,7 @@ def train_model(model: Model) -> dict:
     y_validate = to_categorical(globals()['VALIDATION_LABELS'])
     print(y_train.shape)
 
-    history = model.fit(x=globals()['TRAINING_DATA'], y=y_train, batch_size=32, epochs=10,
+    history = model.fit(x=globals()['TRAINING_DATA'], y=y_train, batch_size=32, epochs=epochs,
                         validation_data=(globals()['VALIDATION_DATA'], y_validate),
                         validation_batch_size=32,
                         validation_freq=1)
@@ -192,7 +192,7 @@ def validate_model_for_rare_classes(model: Model) -> dict:
     return results
 
 
-def calculate_models():
+def calculate_models(epochs=1):
     Path(STAT_DIR).mkdir(parents=True, exist_ok=True)
     Path(MODEL_DIR).mkdir(parents=True, exist_ok=True)
 
@@ -206,12 +206,11 @@ def calculate_models():
     min_value = to_categorical(globals()['VALIDATION_LABELS']).shape[1]
     max_value = len(globals()['DATA'][0])+1
 
-    model = None
     for x in range(min_value, max_value):
         print("Training NN for " + str(x) + " hidden neurons...")
         clear_session()
         model = create_neural_network(x)
-        history = train_model(model)
+        history = train_model(model, epochs)
         model.save(model_folder + "model_" + str(x))
 
         plot_history(history, path=model_folder + "model_" + str(x) + "/history.png", graphs_per_row=2)
@@ -221,7 +220,6 @@ def calculate_models():
             model,
             to_file=model_folder + "model_" + str(x) + "/model.png",
             show_shapes=True,
-            show_dtype=True,
             show_layer_names=True,
             rankdir="TB",
             expand_nested=True,
@@ -260,4 +258,8 @@ def do_step(args: argparse.Namespace) -> None:
             split_data(args.oversample)
         else:
             split_data()
-        calculate_models()
+
+        if args.epochs:
+            calculate_models(args.epochs)
+        else:
+            calculate_models()
