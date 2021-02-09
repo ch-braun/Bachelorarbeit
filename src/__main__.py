@@ -19,8 +19,10 @@ def parse_args():
     parser.add_argument('--skip-norm', help='Skip normalization process', action='store_true')
     parser.add_argument('--skip-independence-check', help='Skip normalization process', action='store_true')
     parser.add_argument('--crit-val', help='Critical value for corr. significance', nargs='?', metavar='a', type=float)
-    parser.add_argument('--oversample', help='Oversampling factor', nargs='?', metavar='o', type=int)
+    parser.add_argument('--target-sampling-amount', help='Target sample amount', nargs='?', metavar='t', type=int)
     parser.add_argument('--epochs', help='Number of epochs to run', nargs='?', metavar='e', type=int)
+    parser.add_argument('--use-normed', help='Use normalized data instead of independent', action='store_true')
+    parser.add_argument('--neurons', help='Specify numbers of neurons', nargs='?', metavar='n', type=int)
     parser.add_argument('--skip-classification', help='Skip classification', action='store_true')
     parser.add_argument('--process-count', help='Specify the number of subprocesses', nargs='?', metavar='P', type=int)
 
