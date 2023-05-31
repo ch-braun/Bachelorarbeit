@@ -1,0 +1,8 @@
+version: "3.9"
+services:
+  tensor:
+    build: .
+    volumes:
+      - ./src:/home/src
+      - ./data:/home/data
+    command: bash -c "cd /home && python ./src/${PYTHON_ENTRYPOINT}"

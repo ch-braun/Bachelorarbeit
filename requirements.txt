@@ -1,0 +1,5 @@
+tensorflow
+filelock
+pydot
+matplotlib
+plot_keras_history
